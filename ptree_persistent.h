@@ -24,13 +24,13 @@
 //
 #include <boost/property_tree/ptree.hpp>
 #include <boost/optional/optional.hpp>
+#include <util/vector_util.h>
 
 // --------------------------------------------------------------------------
 //
 // Project includes
 //
 #include "persistent.h"
-#include "vector_util.h"
 
 
 namespace persistent {

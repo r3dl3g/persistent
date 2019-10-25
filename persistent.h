@@ -29,12 +29,17 @@
 
 // --------------------------------------------------------------------------
 //
+// Library includes
+//
+#include <util/ostreamfmt.h>
+#include <util/variadic_util.h>
+#include <util/string_util.h>
+
+// --------------------------------------------------------------------------
+//
 // Project includes
-//0
-#include "ostreamfmt.h"
-#include "variadic_util.h"
+//
 #include "named_property.h"
-#include "string_util.h"
 
 
 namespace persistent {
