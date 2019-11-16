@@ -21,6 +21,8 @@ if(NOT TARGET persistent)
     set (PERSISTENT_VERSION_PATCH 0)
     set (PERSISTENT_VERSION "${PERSISTENT_VERSION_MAJOR}.${PERSISTENT_VERSION_MINOR}.${PERSISTENT_VERSION_PATCH}")
 
+    set (PERSISTENT_INCLUDE_INSTALL_DIR include/guipp/persistent)
+
     include_directories(${persistent_include})
 
     # header file to pass version settings to the source code
@@ -29,9 +31,13 @@ if(NOT TARGET persistent)
         "${PROJECT_BINARY_DIR}/persistent_version.h"
     )
 
-    file(GLOB SOURCE_FILES "*.h" "*.in")
+    file(GLOB INCLUDE_FILES "*.h" "*.inl")
 
     add_library(persistent INTERFACE)
-    target_sources(persistent INTERFACE "$<BUILD_INTERFACE:${SOURCE_FILES}>")
+    target_sources(persistent INTERFACE "$<BUILD_INTERFACE:${INCLUDE_FILES}>")
+
+    install(FILES ${INCLUDE_FILES}
+                  ${PROJECT_BINARY_DIR}/persistent_version.h
+            DESTINATION ${PERSISTENT_INCLUDE_INSTALL_DIR})
 
 endif()
