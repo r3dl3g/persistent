@@ -38,6 +38,8 @@ if(NOT TARGET persistent)
         $<BUILD_INTERFACE:${INCLUDE_FILES}>
         $<INSTALL_INTERFACE:${INCLUDE_FILES}>
     )
+	set_target_properties(persistent PROPERTIES
+						  FOLDER libraries)
     #target_sources(persistent INTERFACE "$<BUILD_INTERFACE:${INCLUDE_FILES}>")
 
     install(FILES ${INCLUDE_FILES}
