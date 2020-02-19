@@ -253,6 +253,20 @@ namespace persistent {
       }
     };
 
+    template<>
+    struct out<std::ostream, 0, const unsigned char> {
+      static inline void write (std::ostream& os, const unsigned char t) {
+        os << +t;
+      }
+    };
+
+    template<>
+    struct out<std::ostream, 0, const char> {
+      static inline void write (std::ostream& os, const char t) {
+        os << +t;
+      }
+    };
+
     // --------------------------------------------------------------------------
     //
     // read string from istream
