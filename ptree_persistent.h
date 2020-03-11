@@ -179,7 +179,7 @@ namespace persistent {
   struct ptree_struct : public basic_struct<Properties...> {
     typedef basic_struct<Properties...> super;
 
-    ptree_struct (Properties&... properties)
+    ptree_struct (type<Properties>&... properties)
       : super(properties...)
     {}
 
