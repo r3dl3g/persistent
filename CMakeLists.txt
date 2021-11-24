@@ -54,6 +54,7 @@ if(NOT TARGET persistent)
   add_library(persistent INTERFACE)
   add_library(persistent::persistent ALIAS persistent)
 
+if (NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
   set_target_properties(persistent PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     FOLDER libraries
@@ -61,6 +62,7 @@ if(NOT TARGET persistent)
     SOVERSION ${PERSISTENT_VERSION_MAJOR}
     CXX_STANDARD ${PERSISTENT_CXX_STANDARD}
   )
+endif()
 
   target_include_directories(persistent INTERFACE
       $<BUILD_INTERFACE:${INCLUDE_FILES}>
