@@ -22,8 +22,6 @@
 //
 // Common includes
 //
-#include <string>
-#include <vector>
 #include <map>
 #include <iostream>
 
@@ -34,6 +32,7 @@
 #include <util/ostreamfmt.h>
 #include <util/variadic_util.h>
 #include <util/string_util.h>
+#include <util/vector_util.h>
 
 // --------------------------------------------------------------------------
 //
@@ -76,6 +75,13 @@ namespace persistent {
   //
   template<typename T>
   using vector = type<std::vector<T>>;
+
+  // --------------------------------------------------------------------------
+  //
+  // List of fix count of persistent values with same name
+  //
+  template<typename T, std::size_t S>
+  using array = type<std::array<T, S>>;
 
   // --------------------------------------------------------------------------
   namespace detail {
@@ -246,7 +252,7 @@ namespace persistent {
 
     // --------------------------------------------------------------------------
     //
-    // write vector values to ostream
+    // write vector and array values to ostream
     //
     template<typename T>
     struct out<std::ostream, 0, const std::vector<T>> {
@@ -419,17 +425,17 @@ namespace persistent {
     //
     // read element with name of a tuple
     //
-    template<std::size_t N, typename ... Properties>
+    template<typename P, std::size_t N, typename ... Properties>
     struct read_named {
       typedef std::tuple<type<Properties>& ...> property_list;
 
-      static void property (std::istream& is, const std::string& name, property_list& list) {
+      static void property (P& p, const std::string& name, property_list& list) {
         const auto& f = std::get<N - 1>(list);
         if (name == f.name()) {
           using tuple_type = typename util::variadic_element<N - 1, Properties...>::type;
-          in<std::istream, 0, tuple_type>::read(is, f.access().get());
+          in<P, 0, tuple_type>::read(p, f.access().get());
         } else {
-          read_named<N - 1, Properties...>::property(is, name, list);
+          read_named<P, N - 1, Properties...>::property(p, name, list);
         }
       }
 
@@ -439,11 +445,11 @@ namespace persistent {
     //
     // Stop recoursion at element 0
     //
-    template<typename ... Properties>
-    struct read_named<0, Properties...> {
+    template<typename P, typename ... Properties>
+    struct read_named<P, 0, Properties...> {
       typedef std::tuple<type<Properties>& ...> property_list;
 
-      static void property (std::istream&, const std::string& name, property_list&) {
+      static void property (P& p, const std::string& name, property_list&) {
         throw std::runtime_error(ostreamfmt("Could not find property with name '" << name << "'!"));
       }
     };
@@ -452,9 +458,9 @@ namespace persistent {
     //
     // helper to get element with name of a tuple
     //
-    template<typename ... Properties>
-    void read_property (std::istream& is, const std::string& name, std::tuple<type<Properties>& ...>& list) {
-      read_named<sizeof...(Properties), Properties...>::property(is, name, list);
+    template<typename P, typename ... Properties>
+    void read_property (P& p, const std::string& name, std::tuple<type<Properties>& ...>& list) {
+      read_named<P, sizeof...(Properties), Properties...>::property(p, name, list);
     }
 
 
@@ -505,9 +511,9 @@ namespace persistent {
       }
     };
 
-    template<typename ... Properties>
-    void write_struct (std::ostream& os, const basic_struct<Properties...>& t) {
-      out<std::ostream, 0, basic_struct<Properties...>>::write(os, t);
+    template<typename P, typename ... Properties>
+    void write_struct (P& p, const basic_struct<Properties...>& t) {
+      out<P, 0, basic_struct<Properties...>>::write(p, t);
     }
 
     // --------------------------------------------------------------------------
@@ -536,9 +542,9 @@ namespace persistent {
       }
     };
 
-    template<typename ... Properties>
-    void read_struct (std::istream& is, basic_struct<Properties...>& t) {
-      in<std::istream, 0, basic_struct<Properties...>>::read(is, t);
+    template<typename P, typename ... Properties>
+    void read_struct (P& is, basic_struct<Properties...>& t) {
+      in<P, 0, basic_struct<Properties...>>::read(is, t);
     }
 
     // --------------------------------------------------------------------------

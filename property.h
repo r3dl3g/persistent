@@ -18,6 +18,14 @@
 
 #pragma once
 
+// --------------------------------------------------------------------------
+//
+// Common includes
+//
+#include <string>
+#include <vector>
+#include <array>
+
 namespace persistent {
 
   /**
@@ -48,6 +56,10 @@ namespace persistent {
     using uinteger = property<unsigned>;
     using float32 = property<float>;
     using float64 = property<double>;
+    using vector = property<std::vector<T>>;
+    template<std::size_t S>
+    using array = property<std::array<T, S>>;
+
 
     /**
     * Default constructor with Optional default value.
