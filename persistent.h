@@ -179,166 +179,410 @@ namespace persistent {
   };
 
   namespace io {
+
+    // --------------------------------------------------------------------------
+    //
+    // write
+    //
+    // --------------------------------------------------------------------------
+
+    template<typename P>
+    struct write_traits {
+
+      static void list_delemiter (P& p) {
+        p << ',';
+      }
+
+      static void members_delemiter (P& p) {
+        p << ',';
+      }
+
+      static void list_start (P& p) {
+        p << '[';
+      }
+
+      static void list_end (P& p) {
+        p << ']';
+      }
+
+      static void object_key (P& p, const std::string& key) {
+        p << key << ':';
+      }
+
+      static void object_start (P& p) {
+        p << '{';
+      }
+
+      static void object_end (P& p) {
+        p << '}';
+      }
+    };
+
     /**
     * default i/o mapper.
     * Allows specialized implementations.
+    *
+    * default: write value
     */
-    template<typename P, std::size_t I, typename T>
-    struct out {
+    template<typename P, typename T>
+    struct write {
       /// write a named value.
-      //static void write (P&, const T&);
+      static void to (P& p, const T& t) {
+        p << t;
+      }
     };
 
-    template<typename P, std::size_t I, typename T>
-    struct in {
+    /// write property
+    template<typename P, typename T>
+    struct write<P, type<T>> {
+      static void to (P& p, const type<T>& t) {
+        write_traits<P>::object_key(p, t.name());
+        write<P, const T>::to(p, t());
+      }
+    };
+
+    template<typename P, typename T>
+    void write_property (P& p, const type<T>& t) {
+      write<P, type<T>>::to(p, t);
+    }
+
+    /// write vector and array values
+    template<typename P, typename T, typename V>
+    struct writeList {
+      static void to (P& p, const std::string& name, const V& v) {
+        write_traits<P>::object_key(p, name);
+        write_traits<P>::list_start(p);
+        bool first = true;
+        for (const T& t : v) {
+          if (first) {
+            first = false;
+          } else {
+            write_traits<P>::list_delemiter(p);
+          }
+          write<P, const T>::to(p, t);
+        }
+        write_traits<P>::list_end(p);
+      }
+    };
+
+    /// write vector values
+    template<typename P, typename T>
+    struct write<P, type<std::vector<T>>> {
+      static void to (P& p, const type<std::vector<T>>& t) {
+        writeList<P, T, std::vector<T>>::to(p, t.name(), t());
+      }
+    };
+
+    /// write array values
+    template<typename P, typename T, size_t S>
+    struct write<P, type<std::array<T, S>>> {
+      static void to (P& p, const type<std::array<T, S>>& a) {
+        writeList<P, T, std::array<T, S>>::to(p, a.name(), a());
+      }
+    };
+
+//    template<std::size_t I, typename P, typename... Properties>
+//    static void write_member (P& p, std::tuple<type<Properties>&...> const& t) {
+//      using tuple_type = typename util::variadic_element<I, Properties...>::type;
+//      const auto& m = std::get<I>(t);
+//      write<P, type<tuple_type>>::to(p, m);
+//    }
+
+    template<std::size_t I, typename P, typename... Properties>
+    struct write_nth {
+      static void to (P& p, std::tuple<type<Properties>&...> const& t) {
+        write_nth<I - 1, P, Properties...>::to(p, t);
+        write_traits<P>::members_delemiter(p);
+        const auto& m = std::get<I>(t);
+        write_property(p, m);
+      }
+    };
+
+    template<typename P, typename... Properties>
+    struct write_nth<0, P, Properties...> {
+      static void to (P& p, std::tuple<type<Properties>&...> const& t) {
+        const auto& m = std::get<0>(t);
+        write_property(p, m);
+      }
+    };
+
+    /// write tuple
+    template<typename P, typename... Properties>
+    void write_tuple (P& p, const std::tuple<type<Properties>&...>& t) {
+      write_traits<P>::object_start(p);
+      write_nth<(sizeof...(Properties)) - 1, P, Properties...>::to(p, t);
+      write_traits<P>::object_end(p);
+    }
+
+    //// write tuple
+    template<typename P, typename ... Properties>
+    struct write<P, std::tuple<type<Properties>&...>> {
+      static void to (P& p, const std::tuple<type<Properties>&...>& t) {
+        write_tuple(p, t);
+      }
+    };
+
+    /// write basic_struct
+    template<typename P, typename ... Properties>
+    struct write<P, basic_struct<Properties...>> {
+      static void to (P& p, const basic_struct<Properties...>& t) {
+        write_tuple(p, t.properites());
+      }
+    };
+
+    /// write struct helper
+    template<typename P, typename ... Properties>
+    void write_struct (P& p, const basic_struct<Properties...>& t) {
+      write_tuple(p, t.properites());
+    }
+
+    // --------------------------------------------------------------------------
+    //
+    // specializations for ostream
+    //
+    template<>
+    struct write<std::ostream, const std::string> {
+      static inline void to (std::ostream& os, const std::string& t) {
+        os << util::string::quoted(t);
+      }
+    };
+
+    template<>
+    struct write<std::ostream, const char*> {
+      static inline void to (std::ostream& os, const char* t) {
+        os << util::string::quoted(t);
+      }
+    };
+
+    template<>
+    struct write<std::ostream, const unsigned char> {
+      static inline void to (std::ostream& os, const unsigned char t) {
+        os << +t;
+      }
+    };
+
+    template<>
+    struct write<std::ostream, const char> {
+      static inline void to (std::ostream& os, const char t) {
+        os << +t;
+      }
+    };
+
+    // --------------------------------------------------------------------------
+    //
+    // read
+    //
+    // --------------------------------------------------------------------------
+    template<typename P>
+    struct read_traits {
+      static char list_start (P&);
+      static char list_delemiter (P&);
+      static bool list_continue (P&, char);
+      static void list_end (P&, char);
+      static char object_key (P&, std::string&);
+      static char object_start (P&);
+      static char object_delemiter (P&);
+      static bool object_continue (P&, char);
+      static void object_end (P&, char);
+    };
+
+    /// read value
+    template<typename P, typename T, typename Enable = void>
+    struct read {
       /// read a named value.
-      //static void read (P&, T&);
+      static void from (P& p, T& t) {}
     };
 
-    // --------------------------------------------------------------------------
-    //
-    // write 1st value to ostream
-    //
-    template<typename T>
-    struct out<std::ostream, 0, T> {
-      static inline void write (std::ostream& os, const T& t) {
-        os << t;
-      }
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // write following values to ostream
-    //
-    template<std::size_t I, typename T>
-    struct out<std::ostream, I, T> {
-      static void write (std::ostream& os, const T& t) {
-        os << ',';
-        out<std::ostream, 0, T>::write(os, t);
-      }
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // write string to ostream
-    //
-    template<>
-    struct out<std::ostream, 0, const std::string> {
-      static inline void write (std::ostream& os, const std::string& t) {
-        os << util::string::quoted(t);
-      }
-    };
-
-    template<>
-    struct out<std::ostream, 0, const char*> {
-      static inline void write (std::ostream& os, const char* t) {
-        os << util::string::quoted(t);
-      }
-    };
-
-    template<>
-    struct out<std::ostream, 0, const unsigned char> {
-      static inline void write (std::ostream& os, const unsigned char t) {
-        os << +t;
-      }
-    };
-
-    template<>
-    struct out<std::ostream, 0, const char> {
-      static inline void write (std::ostream& os, const char t) {
-        os << +t;
-      }
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // write vector and array values to ostream
-    //
-    template<typename T>
-    struct out<std::ostream, 0, const std::vector<T>> {
-      static void write (std::ostream& os, const std::vector<T>& t) {
-        os << '[';
-        const char* delim = "";
-        for (const T& v : t) {
-          os << delim;
-          delim = ",";
-          out<std::ostream, 0, const T>::write(os, v);
+    /// read property
+    template<typename P, typename T>
+    struct read<P, type<T>> {
+      static void from (P& p, type<T>& t) {
+        std::string name;
+        read_traits<P>::object_key(p, name);
+        if (name != t.name()) {
+          throw std::runtime_error(ostreamfmt("Expected name property '" << t.name()
+                                              << "' but got '" << name << "'!"));
         }
-        os << ']';
+        read<P, T>::from(p, t.access().get());
       }
     };
 
-    // --------------------------------------------------------------------------
-    //
-    // write array values to ostream
-    //
-    template<typename T, size_t S>
-    struct out<std::ostream, 0, const std::array<T, S>> {
-      static void write (std::ostream& os, const std::array<T, S>& a) {
-        os << '[';
-        const char* delim = "";
-        for (const T& e : a) {
-          os << delim;
-          delim = ",";
-          out<std::ostream, 0, const T>::write(os, e);
+    template<typename P, typename T>
+    inline void read_property (P& p, type<T>& t) {
+      read<P, type<T>>::from(p, t);
+    }
+
+    /// read vector
+    template<typename P, typename T>
+    struct read<P, type<std::vector<T>>> {
+      static void from (P& p, type<std::vector<T>>& v) {
+        auto delim = read_traits<P>::list_start(p);
+        while (read_traits<P>::list_continue(p, delim)) {
+          T t;
+          read<P, T>::from(p, t);
+          v().push_back(t);
+          delim = read_traits<P>::list_delemiter(p);
         }
-        os << ']';
+        read_traits<P>::list_end(p, delim);
       }
     };
 
-    // --------------------------------------------------------------------------
-    //
-    // write named type to ostream
-    //
-    template<typename T>
-    struct out<std::ostream, 0, type<T>> {
-      static inline void write (std::ostream& os, const type<T>& t) {
-        os << t.name() << ':';
-        out<std::ostream, 0, const T>::write(os, t());
+    /// read array from istream
+    template<typename P, typename T, size_t S>
+    struct read<P, type<std::array<T, S>>> {
+      static void from (P& p, type<std::array<T, S>>& a) {
+        auto delim = read_traits<P>::list_start(p);
+        for (T& e : a()) {
+          read<P, T>::from(p, e);
+          delim = read_traits<P>::list_delemiter(p);
+        }
+        read_traits<P>::list_end(p, delim);
       }
     };
 
-    // --------------------------------------------------------------------------
-    //
-    // read 1st value from istream
-    //
-    template<typename T>
-    struct in<std::istream, 0, T> {
-      static inline void read (std::istream& is, T& t) {
-        is >> t;
+    /// read element with name of a tuple
+    template<std::size_t I, typename P, typename ... Properties>
+    struct read_named {
+      static void property (P& p, const std::string& name, std::tuple<type<Properties>&...>& t) {
+        auto& f = std::get<I - 1>(t);
+        if (name == f.name()) {
+          read_property(p, f);
+        } else {
+          read_named<I - 1, P, Properties...>::property(p, name, t);
+        }
       }
     };
 
+    /// Stop recoursion at element 0
+    template<typename P, typename ... Properties>
+    struct read_named<0, P, Properties...> {
+      static inline void property (P& p, const std::string& name, std::tuple<type<Properties>& ...>&) {
+        throw std::runtime_error(ostreamfmt("Could not find property with name '" << name << "'!"));
+      }
+    };
+
+    /// read tuple
+    template<typename P, typename ... Properties>
+    struct read_t {
+      static void from (P& p, std::tuple<type<Properties>&...>& t) {
+        auto delim = read_traits<P>::object_start(p);
+        while (read_traits<P>::object_continue(p, delim)) {
+          std::string name;
+          read_traits<P>::object_key(p, name);
+          read_named<sizeof...(Properties), P, Properties...>::property(p, name, t);
+          delim = read_traits<P>::object_delemiter(p);
+        };
+        read_traits<P>::object_end(p, delim);
+      }
+    };
+
+    /// read tuple
+    template<typename P, typename... Properties>
+    void inline read_tuple (P& p, std::tuple<type<Properties>&...>& t) {
+      read_t<P, std::tuple<type<Properties>&...>>::from(p, t);
+    }
+
+    /// read basic_struct
+    template<typename P, typename ... Properties>
+    struct read<P, basic_struct<Properties...>> {
+      static inline void from (P& p, basic_struct<Properties...>& t) {
+        read_t<P, std::tuple<type<Properties>&...>>::from(p, t.properites());
+      }
+    };
+
+    /// read basic_struct
+    template<typename P, typename ... Properties>
+    void inline read_struct (P& p, basic_struct<Properties...>& t) {
+      read<P, basic_struct<Properties...>>::from(p, t);
+    }
+
     // --------------------------------------------------------------------------
     //
-    // read following values from istream
+    // specializations for istream
     //
-    template<std::size_t I, typename T>
-    struct in<std::istream, I, T> {
-      static void read (std::istream& is, T& t) {
+    template<>
+    struct read_traits<std::istream> {
+      static inline char list_start (std::istream& p) {
+        return read_char(p, '[');
+      }
+
+      static inline char list_delemiter (std::istream& p) {
         char delim = 0;
-        is >> std::ws >> delim;
-        if (delim != ',') {
-          throw std::runtime_error(ostreamfmt("Expected list delemiter ',' but got '" << delim << "'!"));
+        p >> std::ws >> delim;
+        if ((delim != ',') && (delim != ']')) {
+          throw std::runtime_error(ostreamfmt("Expected coma ',' or array close bracket ']' but got '" << delim << "'!"));
         }
-        is >> std::ws >> t;
+        return delim;
+      }
+
+      static inline bool list_continue (std::istream& p, char delim) {
+        return (delim != ']') && p.good();
+      }
+
+      static inline void list_end (std::istream& p, char delim) {
+        if (delim != ']') {
+          throw std::runtime_error(ostreamfmt("Expected close bracket ']' but got '" << delim << "'!"));
+        }
+      }
+
+      static inline char object_key (std::istream& p, std::string& key) {
+        p >> std::ws >> util::string::name(key);
+        return read_char(p, ':');
+      }
+
+      static inline char object_start (std::istream& p) {
+        return read_char(p, '{');
+      }
+
+      static inline char object_delemiter (std::istream& p) {
+        char delim = 0;
+        p >> std::ws >> delim;
+        if ((delim != ',') && (delim != '}')) {
+          throw std::runtime_error(ostreamfmt("Expected coma ',' or curly bracket '}' but got '" << delim << "'!"));
+        }
+        return delim;
+      }
+
+      static inline bool object_continue (std::istream& p, char delim) {
+        return (delim != '}') && p.good();
+      }
+
+      static inline void object_end (std::istream& p, char delim) {
+        if (delim != '}') {
+          throw std::runtime_error(ostreamfmt("Expected struct close bracket '}' but got '" << delim << "'!"));
+        }
+      }
+
+    private:
+      static inline char read_char (std::istream& p, const char expected) {
+        char delim = 0;
+        p >> std::ws >> delim;
+        if (delim != expected) {
+          throw std::runtime_error(ostreamfmt("Expected character '" << expected
+                                              << "' but got '" << delim << "'!"));
+        }
+        return delim;
       }
     };
 
-    // --------------------------------------------------------------------------
-    //
-    // read string from istream
-    //
+    template<typename T>
+    struct read<std::istream, T, void> {
+      /// read a named value.
+      static void from (std::istream& p, T& t) {
+        p >> t;
+      }
+    };
+
     template<>
-    struct in<std::istream, 0, std::string> {
-      static void read (std::istream& is, std::string& t) {
+    struct read<std::istream, std::string, void> {
+      static inline void from (std::istream& is, std::string& t) {
         is >> std::ws >> util::string::quoted(t);
       }
     };
 
     template<>
-    struct in<std::istream, 0, unsigned char> {
-      static inline void read (std::istream& is, unsigned char& t) {
+    struct read<std::istream, unsigned char, void> {
+      static inline void from (std::istream& is, unsigned char& t) {
         int i;
         is >> std::ws >> i;
         t = static_cast<unsigned char>(i);
@@ -346,230 +590,15 @@ namespace persistent {
     };
 
     template<>
-    struct in<std::istream, 0, char> {
-      static inline void read (std::istream& is, char& t) {
+    struct read<std::istream, char, void> {
+      static inline void from (std::istream& is, char& t) {
         int i;
         is >> std::ws >> i;
         t = static_cast<char>(i);
       }
     };
 
-    // --------------------------------------------------------------------------
-    //
-    // read vector from istream
-    //
-    template<typename T>
-    struct in<std::istream, 0, std::vector<T>> {
-      static void read (std::istream& is, std::vector<T>& v) {
-        char delim;
-        is >> std::ws >> delim;
-        if (delim != '[') {
-          throw std::runtime_error(ostreamfmt("Expected array open bracket '[' but got '" << delim << "'!"));
-        }
-        while (delim != ']') {
-          is >> std::ws;
-          T t;
-          in<std::istream, 0, T>::read(is, t);
-          v.emplace_back(t);
-          is >> std::ws >> delim;
-          if ((delim != ',') && (delim != ']')) {
-            throw std::runtime_error(ostreamfmt("Expected coma ',' or array close bracket ']' but got '" << delim << "'!"));
-          }
-        }
-      }
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // read array from istream
-    //
-    template<typename T, size_t S>
-    struct in<std::istream, 0, std::array<T, S>> {
-      static void read (std::istream& is, std::array<T, S>& a) {
-        char expected = '[';
-        char delim = 0;
-        for (T& e : a) {
-          is >> std::ws >> delim;
-          if (delim != expected) {
-            throw std::runtime_error(ostreamfmt("Expected array open bracket '[' but got '" << delim << "'!"));
-          }
-          expected = ',';
-          in<std::istream, 0, T>::read(is >> std::ws, e);
-        }
-        is >> std::ws >> delim;
-        if (delim != ']') {
-          throw std::runtime_error(ostreamfmt("Expected array close bracket ']' but got '" << delim << "'!"));
-        }
-      }
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // read named type from istream
-    //
-    template<typename T>
-    struct in<std::istream, 0, type<T>> {
-      static void read (std::istream& is, const type<T>& t) {
-        std::string name;
-        is >> std::ws >> util::string::name(name);
-        if (name != t.name()) {
-          throw std::runtime_error(ostreamfmt("Expected name property '" << t.name()
-                                              << "' but got '" << name << "'!"));
-        }
-        std::getline(is >> std::ws, name, ':');
-        in<std::istream, 0, T>::read(is, t.access().get());
-      }
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // read element with name of a tuple
-    //
-    template<typename P, std::size_t N, typename ... Properties>
-    struct read_named {
-      typedef std::tuple<type<Properties>& ...> property_list;
-
-      static void property (P& p, const std::string& name, property_list& list) {
-        const auto& f = std::get<N - 1>(list);
-        if (name == f.name()) {
-          using tuple_type = typename util::variadic_element<N - 1, Properties...>::type;
-          in<P, 0, tuple_type>::read(p, f.access().get());
-        } else {
-          read_named<P, N - 1, Properties...>::property(p, name, list);
-        }
-      }
-
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // Stop recoursion at element 0
-    //
-    template<typename P, typename ... Properties>
-    struct read_named<P, 0, Properties...> {
-      typedef std::tuple<type<Properties>& ...> property_list;
-
-      static void property (P& p, const std::string& name, property_list&) {
-        throw std::runtime_error(ostreamfmt("Could not find property with name '" << name << "'!"));
-      }
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // helper to get element with name of a tuple
-    //
-    template<typename P, typename ... Properties>
-    void read_property (P& p, const std::string& name, std::tuple<type<Properties>& ...>& list) {
-      read_named<P, sizeof...(Properties), Properties...>::property(p, name, list);
-    }
-
-
-    // --------------------------------------------------------------------------
-    template<typename P, std::size_t I, typename... Properties>
-    struct tuple_io {
-      static void write (P& p, std::tuple<type<Properties>&...> const& t) {
-        tuple_io<P, I - 1, Properties...>::write(p, t);
-        using tuple_type = typename util::variadic_element<I - 1, Properties...>::type;
-        const auto& m = std::get<I - 1>(t);
-        out<P, I - 1, type<tuple_type>>::write(p, m);
-      }
-
-      static void read (P& p, std::tuple<type<Properties>& ...>& t) {
-        tuple_io<P, I - 1, Properties...>::read(p, t);
-        using tuple_type = typename util::variadic_element<I - 1, Properties...>::type;
-        auto& m = std::get<I - 1>(t);
-        in<P, I - 1, type<tuple_type>>::read(p, m);
-      }
-    };
-
-    template<typename P, typename... Properties>
-    struct tuple_io<P, 0, Properties...> {
-      static void write (P&, const std::tuple<type<Properties>&...>&) {}
-      static void read (P&, std::tuple<type<Properties>&...>&) {}
-    };
-
-    template<typename P, typename... Properties>
-    void write_tuple (P& p, const std::tuple<type<Properties>&...>& t) {
-      tuple_io<P, sizeof...(Properties), Properties...>::write(p, t);
-    }
-
-    template<typename P, typename... Properties>
-    void read_tuple (P& p, std::tuple<type<Properties>&...>& t) {
-      tuple_io<P, sizeof...(Properties), Properties...>::read(p, t);
-    }
-
-    // --------------------------------------------------------------------------
-    //
-    // write basic_struct to ostream
-    //
-    template<typename ... Properties>
-    struct out<std::ostream, 0, basic_struct<Properties...>> {
-      static void write (std::ostream& os, const basic_struct<Properties...>& t) {
-        os << '{';
-        write_tuple(os, t.properites());
-        os << '}';
-      }
-    };
-
-    template<typename P, typename ... Properties>
-    void write_struct (P& p, const basic_struct<Properties...>& t) {
-      out<P, 0, basic_struct<Properties...>>::write(p, t);
-    }
-
-    // --------------------------------------------------------------------------
-    //
-    // read basic_struct from istream
-    //
-    template<typename ... Properties>
-    struct in<std::istream, 0, basic_struct<Properties...>> {
-      static void read (std::istream& is, basic_struct<Properties...>& t) {
-        char delim;
-        is >> delim;
-        if (delim != '{') {
-          throw std::runtime_error(ostreamfmt("Expected struct open brace '{' but got '" << delim << "'!"));
-        }
-
-        do {
-          std::string name;
-          std::getline(is >> std::ws, name, ':');
-          read_property(is, name, t.properites());
-          is >> std::ws >> delim;
-        } while (is.good() && (delim == ','));
-
-        if (delim != '}') {
-          throw std::runtime_error(ostreamfmt("Expected struct close bracket '}' but got '" << delim << "'!"));
-        }
-      }
-    };
-
-    template<typename P, typename ... Properties>
-    void read_struct (P& is, basic_struct<Properties...>& t) {
-      in<P, 0, basic_struct<Properties...>>::read(is, t);
-    }
-
-    // --------------------------------------------------------------------------
-    //
-    // write basic_struct
-    //
-    template<typename P, typename ... Properties>
-    struct out<P, 0, basic_struct<Properties...>> {
-      static inline void write (P& p, const basic_struct<Properties...>& t) {
-        write_tuple(p, t.properites());
-      }
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // read basic_struct
-    //
-    template<typename P, typename ... Properties>
-    struct in<P, 0, basic_struct<Properties...>> {
-      static inline void read (P& p, basic_struct<Properties...>& t) {
-        read_tuple(p, t.properites());
-      }
-    };
-
-  }
+  } // namespace io
 
 } // namespace persistent
 
@@ -579,26 +608,26 @@ namespace std {
   template<typename ... Properties>
   inline std::ostream& operator << (std::ostream& os, 
                                     const persistent::basic_struct<Properties...>& t) {
-    persistent::io::out<std::ostream, 0, persistent::basic_struct<Properties...>>::write(os, t);
+    persistent::io::write<std::ostream, persistent::basic_struct<Properties...>>::to(os, t);
     return os;
   }
 
   template<typename T>
   inline std::ostream& operator << (std::ostream& os, const persistent::type<T>& t) {
-    persistent::io::out<std::ostream, 0, persistent::type<T>>::write(os, t);
+    persistent::io::write<std::ostream, persistent::type<T>>::to(os, t);
     return os;
   }
 
   // --------------------------------------------------------------------------
   template<typename ... Properties>
   inline std::istream& operator >> (std::istream& is, persistent::basic_struct<Properties...>& t) {
-    persistent::io::in<std::istream, 0, persistent::basic_struct<Properties...>>::read(is, t);
+    persistent::io::read<std::istream, persistent::basic_struct<Properties...>>::from(is, t);
     return is;
   }
 
   template<typename T>
   inline std::istream& operator >> (std::istream& is, const persistent::type<T>& t) {
-    persistent::io::in<std::istream, 0, persistent::type<T>>::read(is, t);
+    persistent::io::read<std::istream, persistent::type<T>>::from(is, t);
     return is;
   }
 
