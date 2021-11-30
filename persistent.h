@@ -188,34 +188,13 @@ namespace persistent {
 
     template<typename P>
     struct write_traits {
-
-      static void list_delemiter (P& p) {
-        p << ',';
-      }
-
-      static void members_delemiter (P& p) {
-        p << ',';
-      }
-
-      static void list_start (P& p) {
-        p << '[';
-      }
-
-      static void list_end (P& p) {
-        p << ']';
-      }
-
-      static void object_key (P& p, const std::string& key) {
-        p << key << ':';
-      }
-
-      static void object_start (P& p) {
-        p << '{';
-      }
-
-      static void object_end (P& p) {
-        p << '}';
-      }
+      static void list_delemiter (P&);
+      static void members_delemiter (P&);
+      static void list_start (P&);
+      static void list_end (P&);
+      static void object_key (P&, const std::string& key);
+      static void object_start (P&);
+      static void object_end (P&);
     };
 
     /**
@@ -281,13 +260,6 @@ namespace persistent {
       }
     };
 
-//    template<std::size_t I, typename P, typename... Properties>
-//    static void write_member (P& p, std::tuple<type<Properties>&...> const& t) {
-//      using tuple_type = typename util::variadic_element<I, Properties...>::type;
-//      const auto& m = std::get<I>(t);
-//      write<P, type<tuple_type>>::to(p, m);
-//    }
-
     template<std::size_t I, typename P, typename... Properties>
     struct write_nth {
       static void to (P& p, std::tuple<type<Properties>&...> const& t) {
@@ -340,6 +312,38 @@ namespace persistent {
     //
     // specializations for ostream
     //
+    template<>
+    struct write_traits<std::ostream> {
+
+      static void list_delemiter (std::ostream& p) {
+        p << ',' << std::endl;
+      }
+
+      static void members_delemiter (std::ostream& p) {
+        p << ',' << std::endl;
+      }
+
+      static void list_start (std::ostream& p) {
+        p << '[' << std::endl;
+      }
+
+      static void list_end (std::ostream& p) {
+        p << std::endl << ']';
+      }
+
+      static void object_key (std::ostream& p, const std::string& key) {
+        p << key << ':';
+      }
+
+      static void object_start (std::ostream& p) {
+        p << '{' << std::endl;
+      }
+
+      static void object_end (std::ostream& p) {
+        p << std::endl << '}';
+      }
+    };
+
     template<>
     struct write<std::ostream, const std::string> {
       static inline void to (std::ostream& os, const std::string& t) {
@@ -420,12 +424,12 @@ namespace persistent {
     /// read vector
     template<typename P, typename T>
     struct read_vector {
-      static void from (P& p, type<std::vector<T>>& v) {
+      static void from (P& p, std::vector<T>& v) {
         auto delim = read_traits<P>::list_start(p);
         while (read_traits<P>::list_continue(p, delim)) {
           T t;
           read<P, T>::from(p, t);
-          v().push_back(t);
+          v.push_back(t);
           delim = read_traits<P>::list_delemiter(p);
         }
         read_traits<P>::list_end(p, delim);
@@ -433,16 +437,16 @@ namespace persistent {
     };
 
     template<typename P, typename T>
-    void read_vector_t (P& p, type<std::vector<T>>& t) {
+    void read_vector_t (P& p, std::vector<T>& t) {
       read_vector<P, T>::from(p, t);
     }
 
     /// read array
     template<typename P, typename T, std::size_t S>
     struct read_array {
-      static void from (P& p, type<std::array<T, S>>& a) {
+      static void from (P& p, std::array<T, S>& a) {
         auto delim = read_traits<P>::list_start(p);
-        for (T& e : a()) {
+        for (T& e : a) {
           read<P, T>::from(p, e);
           delim = read_traits<P>::list_delemiter(p);
         }
@@ -451,7 +455,7 @@ namespace persistent {
     };
 
     template<typename P, typename T, std::size_t S>
-    void read_array_t (P& p, type<std::array<T, S>>& t) {
+    void read_array_t (P& p, std::array<T, S>& t) {
       read_array<P, T, S>::from(p, t);
     }
 
@@ -510,44 +514,31 @@ namespace persistent {
       read_struct<P, Properties...>::from(p, t);
     }
 
-    /// read basic_struct
-    template<typename P, typename ... Properties>
-    struct read_struct_property {
-      static void from (P& p, type<basic_struct<Properties...>>& t) {
-        read_tuple_t(p, t().properites());
-      }
-    };
-
     template<typename P, typename T>
-    void read_struct_property_t (P& p, type<T>& t) {
-      read_struct_property(p, t());
-    }
-
-    template<typename P, typename T>
-    struct read<P, type<T>, typename std::enable_if<!std::is_base_of<basic_container, T>::value && !util::is_vector<T>::value && !util::is_array<T>::value>::type> {
+    struct read<P, type<T>> {
       static void from (P& p, type<T>& t) {
         read_type_t(p, t);
       }
     };
 
     template<typename P, typename T>
-    struct read<P, type<T>, typename std::enable_if<util::is_vector<T>::value>::type> {
-      static void from (P& p, type<T>& t) {
+    struct read<P, std::vector<T>> {
+      static void from (P& p, std::vector<T>& t) {
         read_vector_t(p, t);
       }
     };
 
-    template<typename P, typename T>
-    struct read<P, type<T>, typename std::enable_if<util::is_array<T>::value>::type> {
-      static void from (P& p, type<T>& t) {
+    template<typename P, typename T, std::size_t S>
+    struct read<P, std::array<T, S>> {
+      static void from (P& p, std::array<T, S>& t) {
         read_array_t(p, t);
       }
     };
 
     template<typename P, typename T>
     struct read<P, T, typename std::enable_if<std::is_base_of<basic_container, T>::value>::type> {
-      static void from (P& p, type<T>& t) {
-        read_struct_property_t(p, t);
+      static void from (P& p, T& t) {
+        read_struct_t(p, t);
       }
     };
 

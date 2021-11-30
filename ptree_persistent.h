@@ -154,9 +154,8 @@ namespace persistent {
     /// read vector
     template<typename T>
     struct read_vector<ptree, T> {
-      static void from (ptree& p, type<std::vector<T>>& t) {
+      static void from (ptree& p, std::vector<T>& v) {
         int i = 0;
-        auto& v = t();
         v.resize(p.size());
         for (auto& item : p) {
           read<ptree, T>::from(item.second, v[i++]);
@@ -167,9 +166,8 @@ namespace persistent {
     /// read array
     template<typename T, size_t S>
     struct read_array<ptree, T, S> {
-      static void from (ptree& p, type<std::array<T, S>>& t) {
+      static void from (ptree& p, std::array<T, S>& a) {
         int i = 0;
-        auto& a = t();
         for (auto& item : p) {
           read<ptree, T>::from(item.second, a[i++]);
         }
