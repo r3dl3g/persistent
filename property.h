@@ -66,7 +66,6 @@ namespace persistent {
     template<std::size_t S>
     using array = property<std::array<T, S>>;
 
-
     /**
     * Default constructor with Optional default value.
     */
