@@ -28,13 +28,19 @@
 
 namespace persistent {
 
+  // --------------------------------------------------------------------------
+  //
+  // Trivial base class for easier template specialization
+  //
+  struct basic_property {};
+
   /**
   * template class property.
   *
   * Acts as a placeholder to have the setter/getter pattern for a value.
   */
   template<typename T>
-  class property {
+  class property : public basic_property {
   public:
     typedef T value_type;
 

@@ -387,34 +387,39 @@ namespace persistent {
     };
 
     /// read value
+    template<typename P, typename T>
+    struct read_value {
+      static void from (P& p, T& t);
+    };
+
+    template<typename P, typename T>
+    void read_value_t (P& p, T& t) {
+      read_value<P, T>::from(p, t);
+    }
+
     template<typename P, typename T, typename Enable = void>
     struct read {
-      /// read a named value.
-      static void from (P& p, T& t) {}
+      static void from (P& p, T& t) {
+        read_value_t(p, t);
+      }
     };
 
     /// read property
     template<typename P, typename T>
-    struct read<P, type<T>> {
+    struct read_type {
       static void from (P& p, type<T>& t) {
-        std::string name;
-        read_traits<P>::object_key(p, name);
-        if (name != t.name()) {
-          throw std::runtime_error(ostreamfmt("Expected name property '" << t.name()
-                                              << "' but got '" << name << "'!"));
-        }
-        read<P, T>::from(p, t.access().get());
+        read<P, T>::from(p, t());
       }
     };
 
     template<typename P, typename T>
-    inline void read_property (P& p, type<T>& t) {
-      read<P, type<T>>::from(p, t);
+    void read_type_t (P& p, type<T>& t) {
+      read_type<P, T>::from(p, t);
     }
 
     /// read vector
     template<typename P, typename T>
-    struct read<P, type<std::vector<T>>> {
+    struct read_vector {
       static void from (P& p, type<std::vector<T>>& v) {
         auto delim = read_traits<P>::list_start(p);
         while (read_traits<P>::list_continue(p, delim)) {
@@ -427,9 +432,14 @@ namespace persistent {
       }
     };
 
-    /// read array from istream
-    template<typename P, typename T, size_t S>
-    struct read<P, type<std::array<T, S>>> {
+    template<typename P, typename T>
+    void read_vector_t (P& p, type<std::vector<T>>& t) {
+      read_vector<P, T>::from(p, t);
+    }
+
+    /// read array
+    template<typename P, typename T, std::size_t S>
+    struct read_array {
       static void from (P& p, type<std::array<T, S>>& a) {
         auto delim = read_traits<P>::list_start(p);
         for (T& e : a()) {
@@ -440,13 +450,19 @@ namespace persistent {
       }
     };
 
+    template<typename P, typename T, std::size_t S>
+    void read_array_t (P& p, type<std::array<T, S>>& t) {
+      read_array<P, T, S>::from(p, t);
+    }
+
     /// read element with name of a tuple
     template<std::size_t I, typename P, typename ... Properties>
     struct read_named {
       static void property (P& p, const std::string& name, std::tuple<type<Properties>&...>& t) {
         auto& f = std::get<I - 1>(t);
         if (name == f.name()) {
-          read_property(p, f);
+          using tuple_type = typename util::variadic_element<I - 1, Properties...>::type;
+          read<P, type<tuple_type>>::from(p, f);
         } else {
           read_named<I - 1, P, Properties...>::property(p, name, t);
         }
@@ -456,14 +472,14 @@ namespace persistent {
     /// Stop recoursion at element 0
     template<typename P, typename ... Properties>
     struct read_named<0, P, Properties...> {
-      static inline void property (P& p, const std::string& name, std::tuple<type<Properties>& ...>&) {
+      static void property (P& p, const std::string& name, std::tuple<type<Properties>& ...>&) {
         throw std::runtime_error(ostreamfmt("Could not find property with name '" << name << "'!"));
       }
     };
 
     /// read tuple
     template<typename P, typename ... Properties>
-    struct read_t {
+    struct read_tuple {
       static void from (P& p, std::tuple<type<Properties>&...>& t) {
         auto delim = read_traits<P>::object_start(p);
         while (read_traits<P>::object_continue(p, delim)) {
@@ -476,25 +492,64 @@ namespace persistent {
       }
     };
 
-    /// read tuple
-    template<typename P, typename... Properties>
-    void inline read_tuple (P& p, std::tuple<type<Properties>&...>& t) {
-      read_t<P, std::tuple<type<Properties>&...>>::from(p, t);
+    template<typename P, typename ... Properties>
+    void read_tuple_t (P& p, std::tuple<type<Properties>&...>& t) {
+      read_tuple<P, Properties...>::from(p, t);
     }
 
     /// read basic_struct
     template<typename P, typename ... Properties>
-    struct read<P, basic_struct<Properties...>> {
-      static inline void from (P& p, basic_struct<Properties...>& t) {
-        read_t<P, std::tuple<type<Properties>&...>>::from(p, t.properites());
+    struct read_struct {
+      static void from (P& p, basic_struct<Properties...>& t) {
+        read_tuple_t(p, t.properites());
       }
     };
 
+    template<typename P, typename ... Properties>
+    void read_struct_t (P& p, basic_struct<Properties...>& t) {
+      read_struct<P, Properties...>::from(p, t);
+    }
+
     /// read basic_struct
     template<typename P, typename ... Properties>
-    void inline read_struct (P& p, basic_struct<Properties...>& t) {
-      read<P, basic_struct<Properties...>>::from(p, t);
+    struct read_struct_property {
+      static void from (P& p, type<basic_struct<Properties...>>& t) {
+        read_tuple_t(p, t().properites());
+      }
+    };
+
+    template<typename P, typename T>
+    void read_struct_property_t (P& p, type<T>& t) {
+      read_struct_property(p, t());
     }
+
+    template<typename P, typename T>
+    struct read<P, type<T>, typename std::enable_if<!std::is_base_of<basic_container, T>::value && !util::is_vector<T>::value && !util::is_array<T>::value>::type> {
+      static void from (P& p, type<T>& t) {
+        read_type_t(p, t);
+      }
+    };
+
+    template<typename P, typename T>
+    struct read<P, type<T>, typename std::enable_if<util::is_vector<T>::value>::type> {
+      static void from (P& p, type<T>& t) {
+        read_vector_t(p, t);
+      }
+    };
+
+    template<typename P, typename T>
+    struct read<P, type<T>, typename std::enable_if<util::is_array<T>::value>::type> {
+      static void from (P& p, type<T>& t) {
+        read_array_t(p, t);
+      }
+    };
+
+    template<typename P, typename T>
+    struct read<P, T, typename std::enable_if<std::is_base_of<basic_container, T>::value>::type> {
+      static void from (P& p, type<T>& t) {
+        read_struct_property_t(p, t);
+      }
+    };
 
     // --------------------------------------------------------------------------
     //
@@ -566,23 +621,22 @@ namespace persistent {
     };
 
     template<typename T>
-    struct read<std::istream, T, void> {
-      /// read a named value.
+    struct read_value<std::istream, T> {
       static void from (std::istream& p, T& t) {
         p >> t;
       }
     };
 
     template<>
-    struct read<std::istream, std::string, void> {
-      static inline void from (std::istream& is, std::string& t) {
+    struct read_value<std::istream, std::string> {
+      static void from (std::istream& is, std::string& t) {
         is >> std::ws >> util::string::quoted(t);
       }
     };
 
     template<>
-    struct read<std::istream, unsigned char, void> {
-      static inline void from (std::istream& is, unsigned char& t) {
+    struct read_value<std::istream, unsigned char> {
+      static void from (std::istream& is, unsigned char& t) {
         int i;
         is >> std::ws >> i;
         t = static_cast<unsigned char>(i);
@@ -590,8 +644,8 @@ namespace persistent {
     };
 
     template<>
-    struct read<std::istream, char, void> {
-      static inline void from (std::istream& is, char& t) {
+    struct read_value<std::istream, char> {
+      static void from (std::istream& is, char& t) {
         int i;
         is >> std::ws >> i;
         t = static_cast<char>(i);

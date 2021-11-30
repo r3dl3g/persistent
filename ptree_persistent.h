@@ -145,106 +145,46 @@ namespace persistent {
 
     /// read value
     template<typename T>
-    struct read<ptree, T, typename std::enable_if<!std::is_base_of<basic_container, T>::value>::type> {
-      static inline void from (ptree& p, T& t) {
+    struct read_value<ptree, T> {
+      static void from (ptree& p, T& t) {
         t = p.get_value<T>(T());
       }
     };
 
-    /// read property
-    template<typename T>
-    struct read<ptree, type<T>, typename std::enable_if<!std::is_base_of<basic_container, T>::value>::type> {
-      static inline void from (ptree& p, type<T>& t) {
-        t(p.get<T>(t.name(), T()));
-      }
-    };
-
-    /// read property
-    template<typename T>
-    struct read<ptree, type<T>, typename std::enable_if<std::is_base_of<basic_container, T>::value>::type> {
-      static inline void from (ptree& p, type<T>& t) {
-        const auto& opt = p.get_child_optional(t.name());
-        if (opt) {
-          read<ptree, T>::from(opt.get(), t.access().get());
-        }
-      }
-    };
-
-    namespace detail {
-      template<typename C>
-      struct init {
-        static inline void list (C&, std::size_t) {}
-      };
-
-      template<typename T>
-      struct init<std::vector<T>> {
-        static inline void list (std::vector<T>& v, std::size_t sz) {
-          v.resize(sz);
-        }
-      };
-    }
-
-    /// read vector or array
-    template<typename T, typename C>
-    void readList (ptree& p, const std::string& name, C& c) {
-      const auto& opt = p.get_child_optional(name);
-      if (opt) {
-        auto children = opt.get();
-        detail::init<C>::list(c, children.size());
-        int i = 0;
-        for (auto& item : children) {
-          read<ptree, T>::from(item.second, c[i++]);
-        }
-      } else {
-        detail::init<C>::list(c, 0);
-      }
-    }
-
     /// read vector
     template<typename T>
-    struct read<ptree, type<std::vector<T>>> {
-      static inline void from (ptree& p, type<std::vector<T>>& t) {
-        readList(p, t.name(), t());
+    struct read_vector<ptree, T> {
+      static void from (ptree& p, type<std::vector<T>>& t) {
+        int i = 0;
+        auto& v = t();
+        v.resize(p.size());
+        for (auto& item : p) {
+          read<ptree, T>::from(item.second, v[i++]);
+        }
       }
     };
 
     /// read array
     template<typename T, size_t S>
-    struct read<ptree, type<std::array<T, S>>> {
-      static inline void from (ptree& p, type<std::array<T, S>>& t) {
-        readList(p, t.name(), t());
+    struct read_array<ptree, T, S> {
+      static void from (ptree& p, type<std::array<T, S>>& t) {
+        int i = 0;
+        auto& a = t();
+        for (auto& item : p) {
+          read<ptree, T>::from(item.second, a[i++]);
+        }
       }
     };
 
     /// read tuple
     template<typename ... Properties>
-    struct read_t<ptree, std::tuple<type<Properties>&...>> {
+    struct read_tuple<ptree, Properties...> {
       static void from (ptree& p, std::tuple<type<Properties>&...>& t) {
         for (auto& item : p) {
-          read_named<sizeof...(Properties), ptree const, Properties...>::property(item.second, item.first, t);
+          read_named<sizeof...(Properties), ptree, Properties...>::property(item.second, item.first, t);
         }
       }
     };
-
-//    /// read tuple
-//    template<typename... Properties>
-//    void inline read_pt_tuple (ptree& p, std::tuple<type<Properties>&...>& t) {
-//      read<ptree, std::tuple<type<Properties>&...>>::from(p, t);
-//    }
-
-//    /// read basic_struct
-//    template<typename ... Properties>
-//    struct read<ptree, basic_struct<Properties...>> {
-//      static inline void from (ptree& p, basic_struct<Properties...>& t) {
-//        read_pt_tuple(p, t.properites());
-//      }
-//    };
-
-//    /// read basic_struct
-//    template<typename ... Properties>
-//    void inline read_struct (ptree& p, basic_struct<Properties...>& t) {
-//      read_pt_tuple(p, t.properites());
-//    }
 
   } // namespace io
 
