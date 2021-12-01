@@ -43,37 +43,37 @@ namespace persistent {
     //
     // specializations for json formatted ostream
     //
-    struct json_formatter : public formatter {
+    struct json_formatter : public ios_formatter {
       json_formatter (std::ostream& os)
-        : formatter(os)
+        : ios_formatter(os)
       {}
     };
 
     template<>
-    struct write_traits<json_formatter> : public write_traits<formatter> {
+    struct write_traits<json_formatter> : public write_traits<ios_formatter> {
 
-      static void object_key (json_formatter& f, const std::string& key) {
-        f.os << '"' << key << "\": ";
+      static void property_init (json_formatter& out, const std::string& key) {
+        out.os << '"' << key << "\": ";
       }
 
     };
 
     template<typename T>
     struct write_value_t<json_formatter, T> {
-      static void to (json_formatter& f, const T& t) {
-        f.os << '"' << t << '"';
+      static void to (json_formatter& out, const T& t) {
+        out.os << '"' << t << '"';
       }
     };
 
     template<typename T>
     void write_json (std::ostream& os, const T& t) {
-      json_formatter f(os);
-      write(f, t);
+      json_formatter out(os);
+      write(out, t);
     }
 
     // --------------------------------------------------------------------------
     //
-    // specializations for json formatted ostream
+    // specializations for json formatted istream
     //
     struct json_parser {
       json_parser (std::istream& is)
@@ -85,41 +85,44 @@ namespace persistent {
 
     template<>
     struct read_traits<json_parser> {
-      static char list_start (json_parser& j) {
-        return read_traits<std::istream>::list_start(j.is);
+      static char list_start (json_parser& in) {
+        return read_traits<std::istream>::list_start(in.is);
       }
 
-      static char list_delemiter (json_parser& j) {
-        return read_traits<std::istream>::list_delemiter(j.is);
+      static bool list_element_init (json_parser& in, char c, bool first) {
+        return read_traits<std::istream>::list_element_init(in.is, c, first);
       }
 
-      static bool list_continue (json_parser& j, char c) {
-        return read_traits<std::istream>::list_continue(j.is, c);
+      static char list_element_finish (json_parser& in) {
+        return read_traits<std::istream>::list_element_finish(in.is);
       }
 
-      static void list_end (json_parser& j, char c) {
-        return read_traits<std::istream>::list_end(j.is, c);
+      static void list_end (json_parser& in, char c) {
+        return read_traits<std::istream>::list_end(in.is, c);
       }
 
-      static char object_key (json_parser& in, std::string& key) {
+      static char property_init (json_parser& in, std::string& key) {
         in.is >> std::ws >> util::string::quoted(key);
         return read_traits<std::istream>::read_char(in.is, ':');
       }
 
-      static char object_start (json_parser& j) {
-        return read_traits<std::istream>::object_start(j.is);
+      static void property_finish (json_parser&, const std::string&) {
       }
 
-      static char object_delemiter (json_parser& j) {
-        return read_traits<std::istream>::object_delemiter(j.is);
+      static char object_delemiter (json_parser& in) {
+        return read_traits<std::istream>::object_delemiter(in.is);
       }
 
-      static bool object_continue (json_parser& j, char c) {
-        return read_traits<std::istream>::object_continue(j.is, c);
+      static bool object_continue (json_parser& in, char c) {
+        return read_traits<std::istream>::object_continue(in.is, c);
       }
 
-      static void object_end (json_parser& j, char c) {
-        return read_traits<std::istream>::object_end(j.is, c);
+      static char object_start (json_parser& in) {
+        return read_traits<std::istream>::object_start(in.is);
+      }
+
+      static void object_end (json_parser& in, char c) {
+        return read_traits<std::istream>::object_end(in.is, c);
       }
 
     };

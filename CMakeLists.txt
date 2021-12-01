@@ -49,7 +49,15 @@ if(NOT TARGET persistent)
       "${PROJECT_BINARY_DIR}/persistent_version.h"
   )
 
-  file(GLOB INCLUDE_FILES "*.h" "*.inl")
+  set(INCLUDE_FILES
+    basic_struct.h
+    named_property.h
+    persistent.h
+    persistent_ios.h
+    persistent_json.h
+    persistent_ptree.h
+    property.h
+  )
 
   add_library(persistent INTERFACE)
   add_library(persistent::persistent ALIAS persistent)

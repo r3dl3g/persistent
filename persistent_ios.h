@@ -47,32 +47,39 @@ namespace persistent {
     template<>
     struct write_traits<std::ostream> {
 
-      static void list_delemiter (std::ostream& p) {
-        p << ',';
+      static void list_element_init (std::ostream& os, bool first) {
+        if (!first) {
+          os << ',';
+        }
       }
 
-      static void members_delemiter (std::ostream& p) {
-        p << ',';
+      static void list_element_finish (std::ostream&) {}
+
+      static void members_delemiter (std::ostream& os) {
+        os << ',';
       }
 
-      static void list_start (std::ostream& p) {
-        p << '[';
+      static void list_start (std::ostream& os) {
+        os << '[';
       }
 
-      static void list_end (std::ostream& p) {
-        p << ']';
+      static void list_end (std::ostream& os) {
+        os << ']';
       }
 
-      static void object_key (std::ostream& p, const std::string& key) {
-        p << key << ':';
+      static void property_init (std::ostream& os, const std::string& key) {
+        os << key << ':';
       }
 
-      static void object_start (std::ostream& p) {
-        p << '{';
+      static void property_finish (std::ostream&, const std::string&) {
       }
 
-      static void object_end (std::ostream& p) {
-        p << '}';
+      static void object_start (std::ostream& os) {
+        os << '{';
+      }
+
+      static void object_end (std::ostream& os) {
+        os << '}';
       }
     };
 
@@ -115,85 +122,99 @@ namespace persistent {
     //
     // specializations for formatted ostream
     //
-    struct formatter {
+    struct ios_formatter {
 
-      formatter (std::ostream& os)
+      ios_formatter (std::ostream& os)
         : os(os)
       {}
 
       std::ostream& os;
+
       int deepth = 0;
+      bool multi_line = false;
 
-      inline void inc () {
+      inline ios_formatter& inc () {
         ++deepth;
+        return *this;
       }
 
-      inline void dec () {
+      inline ios_formatter& dec () {
         --deepth;
+        return *this;
       }
+
+      ios_formatter& fill () {
+        if (multi_line) {
+          for (int i = 0; i < deepth; ++i) {
+            os << "  ";
+          }
+          multi_line = false;
+        }
+        return *this;
+      }
+
+      ios_formatter& endl () {
+        os << std::endl;
+        multi_line = true;
+        return *this;
+      }
+
     };
 
     template<>
-    struct write_traits<formatter> {
+    struct write_traits<ios_formatter> {
 
-      static void fill (formatter& f) {
-        for (int i = 0; i < f.deepth; ++i) {
-          f.os << "    ";
+      static void list_element_init (ios_formatter& out, bool first) {
+        if (!first) {
+          out.os << ',';
+          out.endl().fill();
         }
       }
 
-      static void list_delemiter (formatter& f) {
-        f.os << ',' << std::endl;
-        fill(f);
+      static void list_element_finish (ios_formatter&) {}
+
+      static void members_delemiter (ios_formatter& out) {
+        out.os << ',';
+        out.endl().fill();
       }
 
-      static void members_delemiter (formatter& f) {
-        f.os << ',' << std::endl;
-        fill(f);
+      static void list_start (ios_formatter& out) {
+        out.os << "[";
+        out.endl().inc().fill();
       }
 
-      static void list_start (formatter& f) {
-        f.os << "[" << std::endl;
-        f.inc();
-        fill(f);
+      static void list_end (ios_formatter& out) {
+        out.endl().dec().fill().os << "]";
       }
 
-      static void list_end (formatter& f) {
-        f.os << std::endl;
-        f.dec();
-        fill(f);
-        f.os << "]";
+      static void property_init (ios_formatter& out, const std::string& key) {
+        out.os << key << ": ";
       }
 
-      static void object_key (formatter& f, const std::string& key) {
-        f.os << key << ": ";
+      static void property_finish (ios_formatter& out, const std::string&) {
       }
 
-      static void object_start (formatter& f) {
-        f.os << '{' << std::endl;
-        f.inc();
-        fill(f);
+      static void object_start (ios_formatter& out) {
+        out.os << '{';
+        out.endl().inc().fill();
       }
 
-      static void object_end (formatter& f) {
-        f.os << std::endl;
-        f.dec();
-        fill(f);
-        f.os << '}';
+      static void object_end (ios_formatter& out) {
+        out.endl().dec().fill().os << '}';
       }
     };
 
     template<typename T>
-    struct write_value_t<formatter, T> {
-      static void to (formatter& f, const T& t) {
-        write_value(f.os, t);
+    struct write_value_t<ios_formatter, T> {
+      static void to (ios_formatter& out, const T& t) {
+        write_value(out.os, t);
       }
     };
 
     template<typename T>
     void write_formatted (std::ostream& os, const T& t) {
-      formatter f(os);
-      write(f, t);
+      ios_formatter out(os);
+      write(out, t);
     }
 
     // --------------------------------------------------------------------------
@@ -202,60 +223,63 @@ namespace persistent {
     //
     template<>
     struct read_traits<std::istream> {
-      static inline char list_start (std::istream& p) {
-        return read_char(p, '[');
+      static inline char list_start (std::istream& is) {
+        return read_char(is, '[');
       }
 
-      static inline char list_delemiter (std::istream& p) {
+      static inline bool list_element_init (std::istream& is, char delim, bool first) {
+        return (delim != ']') && is.good();
+      }
+
+      static inline char list_element_finish (std::istream& is) {
         char delim = 0;
-        p >> std::ws >> delim;
+        is >> std::ws >> delim;
         if ((delim != ',') && (delim != ']')) {
           throw std::runtime_error(ostreamfmt("Expected coma ',' or array close bracket ']' but got '" << delim << "'!"));
         }
         return delim;
       }
 
-      static inline bool list_continue (std::istream& p, char delim) {
-        return (delim != ']') && p.good();
-      }
-
-      static inline void list_end (std::istream& p, char delim) {
+      static inline void list_end (std::istream& is, char delim) {
         if (delim != ']') {
           throw std::runtime_error(ostreamfmt("Expected close bracket ']' but got '" << delim << "'!"));
         }
       }
 
-      static inline char object_key (std::istream& p, std::string& key) {
-        p >> std::ws >> util::string::name(key);
-        return read_char(p, ':');
+      static inline char property_init (std::istream& is, std::string& key) {
+        is >> std::ws >> util::string::name(key);
+        return read_char(is, ':');
       }
 
-      static inline char object_start (std::istream& p) {
-        return read_char(p, '{');
+      static inline void property_finish (std::istream&, const std::string&) {
       }
 
-      static inline char object_delemiter (std::istream& p) {
+      static inline char object_delemiter (std::istream& is) {
         char delim = 0;
-        p >> std::ws >> delim;
+        is >> std::ws >> delim;
         if ((delim != ',') && (delim != '}')) {
           throw std::runtime_error(ostreamfmt("Expected coma ',' or curly bracket '}' but got '" << delim << "'!"));
         }
         return delim;
       }
 
-      static inline bool object_continue (std::istream& p, char delim) {
-        return (delim != '}') && p.good();
+      static inline bool object_continue (std::istream& is, char delim) {
+        return (delim != '}') && is.good();
       }
 
-      static inline void object_end (std::istream& p, char delim) {
+      static inline char object_start (std::istream& is) {
+        return read_char(is, '{');
+      }
+
+      static inline void object_end (std::istream& is, char delim) {
         if (delim != '}') {
           throw std::runtime_error(ostreamfmt("Expected struct close bracket '}' but got '" << delim << "'!"));
         }
       }
 
-      static inline char read_char (std::istream& p, const char expected) {
+      static inline char read_char (std::istream& is, const char expected) {
         char delim = 0;
-        p >> std::ws >> delim;
+        is >> std::ws >> delim;
         if (delim != expected) {
           throw std::runtime_error(ostreamfmt("Expected character '" << expected
                                               << "' but got '" << delim << "'!"));
@@ -266,8 +290,8 @@ namespace persistent {
 
     template<typename T>
     struct read_value_t<std::istream, T> {
-      static void from (std::istream& p, T& t) {
-        p >> t;
+      static void from (std::istream& is, T& t) {
+        is >> t;
       }
     };
 
