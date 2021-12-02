@@ -45,8 +45,8 @@ namespace persistent {
     // specializations for ostream
     //
     struct xml_formatter : public ios_formatter {
-      xml_formatter (std::ostream& os)
-        : ios_formatter(os)
+      xml_formatter (std::ostream& os, bool beautify = true)
+        : ios_formatter(os, beautify)
       {}
 
     };
@@ -60,41 +60,41 @@ namespace persistent {
     template<>
     struct write_traits<xml_formatter> {
 
-      static void list_start (xml_formatter& out) {
+      static void write_list_start (xml_formatter& out) {
         out.endl().fill().os << "<ol>",
         out.endl().inc();
       }
 
-      static void list_element_init (xml_formatter& out, bool) {
+      static void write_list_element_init (xml_formatter& out, bool) {
         out.fill().inc().os << "<li>";
       }
 
-      static void list_element_finish (xml_formatter& out) {
+      static void write_list_element_finish (xml_formatter& out) {
         out.dec().fill().os << "</li>";
         out.endl();
       }
 
-      static void list_end (xml_formatter& out) {
+      static void write_list_end (xml_formatter& out) {
         out.dec().fill().os << "</ol>";
         out.endl();
       }
 
-      static void members_delemiter (xml_formatter&) {
+      static void write_members_delemiter (xml_formatter&) {
       }
 
-      static void property_init (xml_formatter& out, const std::string& name) {
+      static void write_property_init (xml_formatter& out, const std::string& name) {
         out.fill().inc().os << "<" << name << '>';
       }
 
-      static void property_finish (xml_formatter& out, const std::string& name) {
+      static void write_property_finish (xml_formatter& out, const std::string& name) {
         out.dec().fill().os << "</" << name << '>';
         out.endl();
       }
 
-      static void object_start (xml_formatter&) {
+      static void write_object_start (xml_formatter&) {
       }
 
-      static void object_end (xml_formatter&) {
+      static void write_object_end (xml_formatter&) {
       }
     };
 
@@ -106,10 +106,10 @@ namespace persistent {
     };
 
     template<typename T>
-    void write_xml (std::ostream& os, const T& t) {
-      xml_formatter out(os);
-      os << xml::s_header << std::endl;
-      os << xml::s_body;
+    void write_xml (std::ostream& os, const T& t, bool beautify = true) {
+      xml_formatter out(os, beautify);
+      out.os << xml::s_header;
+      out.endl().os << xml::s_body;
       out.endl().inc();
       write(out, t);
       out.dec();
@@ -128,7 +128,10 @@ namespace persistent {
 
       std::istream& is;
 
-      const std::string& next_token () const {
+      const std::string& next_token () {
+        if (token_empty()) {
+          next();
+        }
         return token;
       }
 
@@ -149,12 +152,20 @@ namespace persistent {
         return token = str.str() + next;
       }
 
-      void check_token (const std::string& expected) const {
-        if (token != expected) {
+      void check_token (const std::string& expected) {
+        if (next_token() != expected) {
           throw std::runtime_error(ostreamfmt("Expected '" << expected << "' but got '" << token << "'!"));
         }
+        clear_token();
       }
 
+      void clear_token () {
+        token.clear();
+      }
+
+      bool token_empty () const {
+        return token.empty();
+      }
 
     private:
       std::string token;
@@ -164,57 +175,52 @@ namespace persistent {
     template<>
     struct read_traits<xml_parser> {
 
-      static char list_start (xml_parser& in) {
-        in.next();
+      static void read_list_start (xml_parser& in) {
         in.check_token("<ol>");
-        in.next();
-        return ' ';
       }
 
-      static bool list_element_init (xml_parser& in, char c, bool first) {
-        return in.next_token() == "<li>";
+      static bool read_list_element_init (xml_parser& in, bool first) {
+        if (in.next_token() == "<li>") {
+          in.clear_token();
+          return true;
+        }
+        return false;
       }
 
-      static char list_element_finish (xml_parser& in) {
-        in.next();
+      static void read_list_element_finish (xml_parser& in) {
         in.check_token("</li>");
-        in.next();
-        return ' ';
       }
 
-      static void list_end (xml_parser& in, char c) {
+      static void read_list_end (xml_parser& in) {
         in.check_token("</ol>");
       }
 
-      static char property_init (xml_parser& in, std::string& key) {
+      static void read_property_init (xml_parser& in, std::string& key) {
         const std::string& token = in.next_token();
         if ((token.size() < 3) || (token.front() != '<') || (token.back() != '>')) {
           throw std::runtime_error(ostreamfmt("Expected '<xyz>' but got '" << token << "'!"));
         }
         key = token.substr(1, token.size() - 2);
-        return '>';
+        in.clear_token();
       }
 
-      static void property_finish (xml_parser& in, const std::string& key) {
-        in.next();
+      static void read_property_finish (xml_parser& in, const std::string& key) {
         in.check_token("</" + key + ">");
-        in.next();
       }
 
-      static char object_delemiter (xml_parser&) {
-        return ' ';
+      static bool read_object_element_init (xml_parser& in, std::string& key) {
+        const std::string& token = in.next_token();
+        if (in.is.good() && !util::string::starts_with(token, "</") &&
+            (token.size() > 2) && (token.front() == '<') && (token.back() == '>')) {
+          key = token.substr(1, token.size() - 2);
+          in.clear_token();
+          return true;
+        }
+        return false;
       }
 
-      static bool object_continue (xml_parser& in, char c) {
-        return in.is.good() && !util::string::starts_with(in.next_token(), "</");
-      }
-
-      static char object_start (xml_parser& in) {
-        in.next();
-        return ' ';
-      }
-
-      static void object_end (xml_parser& in, char c) {
+      static void read_object_element_finish (xml_parser& in, const std::string& key) {
+        in.check_token("</" + key + ">");
       }
 
     };
@@ -229,9 +235,7 @@ namespace persistent {
     template<typename T>
     void read_xml (std::istream& is, T& t) {
       xml_parser in(is);
-      in.next();
       in.check_token(xml::s_header);
-      in.next();
       in.check_token(xml::s_body);
       read(in, t);
       in.check_token(xml::s_nbody);

@@ -44,16 +44,19 @@ namespace persistent {
     // specializations for json formatted ostream
     //
     struct json_formatter : public ios_formatter {
-      json_formatter (std::ostream& os)
-        : ios_formatter(os)
+      json_formatter (std::ostream& os, bool beautify = true)
+        : ios_formatter(os, beautify)
       {}
     };
 
     template<>
     struct write_traits<json_formatter> : public write_traits<ios_formatter> {
 
-      static void property_init (json_formatter& out, const std::string& key) {
-        out.os << '"' << key << "\": ";
+      static void write_property_init (json_formatter& out, const std::string& key) {
+        out.os << '"' << key << "\":";
+        if (out.beautify) {
+          out.os << " ";
+        }
       }
 
     };
@@ -66,9 +69,9 @@ namespace persistent {
     };
 
     template<typename T>
-    void write_json (std::ostream& os, const T& t) {
-      json_formatter out(os);
-      write(out, t);
+    void inline write_json (std::ostream& os, const T& t, bool beautify = true) {
+      json_formatter out(os, beautify);
+      write_any(out, t);
     }
 
     // --------------------------------------------------------------------------
@@ -85,45 +88,47 @@ namespace persistent {
 
     template<>
     struct read_traits<json_parser> {
-      static char list_start (json_parser& in) {
-        return read_traits<std::istream>::list_start(in.is);
+      static void read_list_start (json_parser& in) {
+        read_traits<std::istream>::read_list_start(in.is);
       }
 
-      static bool list_element_init (json_parser& in, char c, bool first) {
-        return read_traits<std::istream>::list_element_init(in.is, c, first);
+      static bool read_list_element_init (json_parser& in, bool first) {
+        return read_traits<std::istream>::read_list_element_init(in.is, first);
       }
 
-      static char list_element_finish (json_parser& in) {
-        return read_traits<std::istream>::list_element_finish(in.is);
+      static void read_list_element_finish (json_parser& in) {
+        read_traits<std::istream>::read_list_element_finish(in.is);
       }
 
-      static void list_end (json_parser& in, char c) {
-        return read_traits<std::istream>::list_end(in.is, c);
+      static void read_list_end (json_parser& in) {
+        read_traits<std::istream>::read_list_end(in.is);
       }
 
-      static char property_init (json_parser& in, std::string& key) {
+      static void read_property_init (json_parser& in, std::string& key) {
         in.is >> std::ws >> util::string::quoted(key);
-        return read_traits<std::istream>::read_char(in.is, ':');
+        read_traits<std::istream>::read_char(in.is, ':');
       }
 
-      static void property_finish (json_parser&, const std::string&) {
+      static void read_property_finish (json_parser&, const std::string&) {
       }
 
-      static char object_delemiter (json_parser& in) {
-        return read_traits<std::istream>::object_delemiter(in.is);
+      static bool read_object_element_init (json_parser& in, std::string& key) {
+        char delim = 0;
+        in.is >> std::ws >> delim >> std::ws;
+        if ((delim != ',') && (delim != '{') && (delim != '}')) {
+          throw std::runtime_error(ostreamfmt("Expected coma ',' or curly bracket '{' or '}' but got '" << delim << "'!"));
+        }
+        if (in.is.good() && (delim == '{') && (in.is.peek() == '}')) {
+          in.is >> delim;
+        }
+        if (in.is.good() && (delim != '}')) {
+          read_property_init(in, key);
+          return true;
+        }
+        return false;
       }
 
-      static bool object_continue (json_parser& in, char c) {
-        return read_traits<std::istream>::object_continue(in.is, c);
-      }
-
-      static char object_start (json_parser& in) {
-        return read_traits<std::istream>::object_start(in.is);
-      }
-
-      static void object_end (json_parser& in, char c) {
-        return read_traits<std::istream>::object_end(in.is, c);
-      }
+      static void read_object_element_finish (json_parser&, const std::string&) {}
 
     };
 

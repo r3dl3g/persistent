@@ -54,18 +54,18 @@ namespace persistent {
      */
     template<typename Target>
     struct write_traits {
-      static void list_start (Target&) {}
-      static void list_element_init (Target&, bool first) {}
-      static void list_element_finish (Target&) {}
-      static void list_end (Target&) {}
+      static void write_list_start (Target&) {}
+      static void write_list_element_init (Target&, bool first) {}
+      static void write_list_element_finish (Target&) {}
+      static void write_list_end (Target&) {}
 
-      static void members_delemiter (Target&) {}
+      static void write_members_delemiter (Target&) {}
 
-      static void property_init (Target&, const std::string&) {}
-      static void property_finish (Target&, const std::string&) {}
+      static void write_property_init (Target&, const std::string&) {}
+      static void write_property_finish (Target&, const std::string&) {}
 
-      static void object_start (Target&) {}
-      static void object_end (Target&) {}
+      static void write_object_start (Target&) {}
+      static void write_object_end (Target&) {}
     };
 
     /**
@@ -104,9 +104,9 @@ namespace persistent {
     template<typename Target, typename T>
     struct write_property_t {
       static void to (Target& out, const type<T>& t) {
-        write_traits<Target>::property_init(out, t.name());
+        write_traits<Target>::write_property_init(out, t.name());
         write_any(out, t());
-        write_traits<Target>::property_finish(out, t.name());
+        write_traits<Target>::write_property_finish(out, t.name());
       }
     };
 
@@ -119,15 +119,15 @@ namespace persistent {
     template<typename Target, typename T, typename V>
     struct writeList_t {
       static void to (Target& out, const V& v) {
-        write_traits<Target>::list_start(out);
+        write_traits<Target>::write_list_start(out);
         bool first = true;
         for (const T& t : v) {
-          write_traits<Target>::list_element_init(out, first);
+          write_traits<Target>::write_list_element_init(out, first);
           first = false;
           write_any(out, t);
-          write_traits<Target>::list_element_finish(out);
+          write_traits<Target>::write_list_element_finish(out);
         }
-        write_traits<Target>::list_end(out);
+        write_traits<Target>::write_list_end(out);
       }
     };
 
@@ -148,7 +148,7 @@ namespace persistent {
     template<typename Target, typename T, size_t S>
     struct write_array_t {
       static void to (Target& out, const std::array<T, S>& t) {
-        writeList_t<Target, T, std::array<T, S>>::to(out, t());
+        writeList_t<Target, T, std::array<T, S>>::to(out, t);
       }
     };
 
@@ -164,7 +164,7 @@ namespace persistent {
     struct write_nth {
       static void to (Target& out, std::tuple<type<Properties>&...> const& t) {
         write_nth<I - 1, Target, Properties...>::to(out, t);
-        write_traits<Target>::members_delemiter(out);
+        write_traits<Target>::write_members_delemiter(out);
         const auto& m = std::get<I>(t);
         write_any(out, m);
       }
@@ -183,9 +183,9 @@ namespace persistent {
     template<typename Target, typename ... Properties>
     struct write_tuple_t {
       static void to (Target& out, const std::tuple<type<Properties>&...>& t) {
-        write_traits<Target>::object_start(out);
+        write_traits<Target>::write_object_start(out);
         write_nth<(sizeof...(Properties)) - 1, Target, Properties...>::to(out, t);
-        write_traits<Target>::object_end(out);
+        write_traits<Target>::write_object_end(out);
       }
     };
 
@@ -257,19 +257,16 @@ namespace persistent {
      */
     template<typename Source>
     struct read_traits {
-      static char list_start (Source&) { return ' '; }
-      static bool list_element_init (Source&, char, bool first) { return true; }
-      static char list_element_finish (Source&) { return true; }
-      static void list_end (Source&, char) {}
+      static void read_list_start (Source&) {}
+      static bool read_list_element_init (Source&, bool) { return true; }
+      static void read_list_element_finish (Source&) {}
+      static void read_list_end (Source&) {}
 
-      static char property_init (Source&, std::string&) { return ' '; }
-      static void property_finish (Source&, const std::string&) {}
+      static void read_property_init (Source&, std::string&) {}
+      static void read_property_finish (Source&, const std::string&) {}
 
-      static char object_delemiter (Source&) { return ' '; }
-      static bool object_continue (Source&, char) { return true; }
-
-      static char object_start (Source&) { return ' '; }
-      static void object_end (Source&, char) {}
+      static bool read_object_element_init (Source&, std::string&) { return true; }
+      static void read_object_element_finish (Source&, const std::string&) {}
     };
 
     /// read value
@@ -303,7 +300,10 @@ namespace persistent {
     template<typename Source, typename T>
     struct read_property_t {
       static void from (Source& in, type<T>& t) {
+        std::string name;
+        read_traits<Source>::read_property_init(in, name);
         read_any(in, t());
+        read_traits<Source>::read_property_finish(in, name);
       }
     };
 
@@ -316,15 +316,15 @@ namespace persistent {
     template<typename Source, typename T>
     struct read_vector_t {
       static void from (Source& in, std::vector<T>& v) {
-        auto delim = read_traits<Source>::list_start(in);
+        read_traits<Source>::read_list_start(in);
         v.clear();
-        while (read_traits<Source>::list_element_init(in, delim, v.empty())) {
+        while (read_traits<Source>::read_list_element_init(in, v.empty())) {
           T t;
           read_any(in, t);
           v.push_back(t);
-          delim = read_traits<Source>::list_element_finish(in);
+          read_traits<Source>::read_list_element_finish(in);
         }
-        read_traits<Source>::list_end(in, delim);
+        read_traits<Source>::read_list_end(in);
       }
     };
 
@@ -337,15 +337,15 @@ namespace persistent {
     template<typename Source, typename T, std::size_t S>
     struct read_array_t {
       static void from (Source& in, std::array<T, S>& a) {
-        auto delim = read_traits<Source>::list_start(in);
+        read_traits<Source>::read_list_start(in);
         bool first = true;
         for (T& e : a) {
-          read_traits<Source>::list_element_init(in, delim, first);
+          read_traits<Source>::read_list_element_init(in, first);
           first = false;
           read_any(in, e);
-          delim = read_traits<Source>::list_element_finish(in);
+          read_traits<Source>::read_list_element_finish(in);
         }
-        read_traits<Source>::list_end(in, delim);
+        read_traits<Source>::read_list_end(in);
       }
     };
 
@@ -360,7 +360,7 @@ namespace persistent {
       static void property (Source& in, const std::string& name, std::tuple<type<Properties>&...>& t) {
         auto& f = std::get<I - 1>(t);
         if (name == f.name()) {
-          read_any(in, f);
+          read_any(in, f());
         } else {
           read_named<I - 1, Source, Properties...>::property(in, name, t);
         }
@@ -379,16 +379,12 @@ namespace persistent {
     template<typename Source, typename ... Properties>
     struct read_tuple_t {
       static void from (Source& in, std::tuple<type<Properties>&...>& t) {
-        auto delim = read_traits<Source>::object_start(in);
         std::string name;
-        while (read_traits<Source>::object_continue(in, delim)) {
-          name.clear();
-          read_traits<Source>::property_init(in, name);
+        while (read_traits<Source>::read_object_element_init(in, name)) {
           read_named<sizeof...(Properties), Source, Properties...>::property(in, name, t);
-          read_traits<Source>::property_finish(in, name);
-          delim = read_traits<Source>::object_delemiter(in);
-        };
-        read_traits<Source>::object_end(in, delim);
+          read_traits<Source>::read_object_element_finish(in, name);
+          name.clear();
+        }
       }
     };
 

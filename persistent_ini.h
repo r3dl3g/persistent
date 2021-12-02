@@ -74,22 +74,22 @@ namespace persistent {
     template<>
     struct write_traits<ini_formatter> {
 
-      static void property_init (ini_formatter& out, const std::string& key) {
+      static void write_property_init (ini_formatter& out, const std::string& key) {
         out.last_key = key;
         out.os << key << "=";
       }
 
-      static void property_finish (ini_formatter&, const std::string&) {
+      static void write_property_finish (ini_formatter&, const std::string&) {
       }
 
-      static void object_start (ini_formatter& out) {
+      static void write_object_start (ini_formatter& out) {
         if (!out.last_key.empty()) {
           out.path.push_back(out.last_key);
           out.print_path();
         }
       }
 
-      static void object_end (ini_formatter& out) {
+      static void write_object_end (ini_formatter& out) {
         out.os << std::endl;
         if (!out.path.empty()) {
           out.path.pop_back();
@@ -97,24 +97,24 @@ namespace persistent {
         }
       }
 
-      static void members_delemiter (ini_formatter& out) {
+      static void write_members_delemiter (ini_formatter& out) {
         out.os << std::endl;
       }
 
-      static void list_element_init (ini_formatter& out, bool first) {
-        write_traits<std::ostream>::list_element_init(out.os, first);
+      static void write_list_element_init (ini_formatter& out, bool first) {
+        write_traits<std::ostream>::write_list_element_init(out.os, first);
       }
 
-      static void list_element_finish (ini_formatter& out) {
-        write_traits<std::ostream>::list_element_finish(out.os);
+      static void write_list_element_finish (ini_formatter& out) {
+        write_traits<std::ostream>::write_list_element_finish(out.os);
       }
 
-      static void list_start (ini_formatter& out) {
-        write_traits<std::ostream>::list_start(out.os);
+      static void write_list_start (ini_formatter& out) {
+        write_traits<std::ostream>::write_list_start(out.os);
       }
 
-      static void list_end (ini_formatter& out) {
-        write_traits<std::ostream>::list_end(out.os);
+      static void write_list_end (ini_formatter& out) {
+        write_traits<std::ostream>::write_list_end(out.os);
       }
 
     };
@@ -146,45 +146,39 @@ namespace persistent {
 
     template<>
     struct read_traits<ini_parser> : public read_traits<std::istream> {
-      static char list_start (ini_parser& in) {
-        return read_traits<std::istream>::list_start(in.is);
+      static void read_list_start (ini_parser& in) {
+        read_traits<std::istream>::read_list_start(in.is);
       }
 
-      static bool list_element_init (ini_parser& in, char c, bool first) {
-        return read_traits<std::istream>::list_element_init(in.is, c, first);
+      static bool read_list_element_init (ini_parser& in, bool first) {
+        return read_traits<std::istream>::read_list_element_init(in.is, first);
       }
 
-      static char list_element_finish (ini_parser& in) {
-        return read_traits<std::istream>::list_element_finish(in.is);
+      static void read_list_element_finish (ini_parser& in) {
+        read_traits<std::istream>::read_list_element_finish(in.is);
       }
 
-      static void list_end (ini_parser& in, char c) {
-        return read_traits<std::istream>::list_end(in.is, c);
+      static void read_list_end (ini_parser& in) {
+        return read_traits<std::istream>::read_list_end(in.is);
       }
 
-      static char property_init (ini_parser& in, std::string& key) {
+      static void read_property_init (ini_parser& in, std::string& key) {
         std::getline(in.is >> std::ws, key, '=');
-        return '=';
       }
 
-      static void property_finish (ini_parser&, const std::string&) {
+      static void read_property_finish (ini_parser&, const std::string&) {
       }
 
-      static char object_delemiter (ini_parser&) {
-        return ' ';
-      }
-
-      static bool object_continue (ini_parser& in, char c) {
+      static bool read_object_element_init (ini_parser& in, std::string& key) {
         in.is >> std::ws;
-        return in.is.good() && (in.is.peek() != '[');
+        if (in.is.good() && (in.is.peek() != '[')) {
+          std::getline(in.is >> std::ws, key, '=');
+          return true;
+        }
+        return false;
       }
 
-      static char object_start (ini_parser&) {
-        return ' ';
-      }
-
-      static void object_end (ini_parser&, char) {
-      }
+      static void read_object_element_finish (ini_parser&, const std::string&) {}
 
     };
 
