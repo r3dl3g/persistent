@@ -47,8 +47,8 @@ namespace persistent {
     template<>
     struct write_traits<std::ostream> {
 
-      static void write_list_element_init (std::ostream& os, bool first) {
-        if (!first) {
+      static void write_list_element_init (std::ostream& os, int num) {
+        if (num) {
           os << ',';
         }
       }
@@ -168,8 +168,8 @@ namespace persistent {
     template<>
     struct write_traits<ios_formatter> {
 
-      static void write_list_element_init (ios_formatter& out, bool first) {
-        if (!first) {
+      static void write_list_element_init (ios_formatter& out, int num) {
+        if (num) {
           out.os << ',';
           out.endl().fill();
         }
@@ -231,7 +231,7 @@ namespace persistent {
         read_char(is, '[');
       }
 
-      static inline bool read_list_element_init (std::istream& is, bool) {
+      static inline bool read_list_element_init (std::istream& is, int) {
         is >> std::ws;
         char delim = is.peek();
         return is.good() && (delim != ']');

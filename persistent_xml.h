@@ -65,7 +65,7 @@ namespace persistent {
         out.endl().inc();
       }
 
-      static void write_list_element_init (xml_formatter& out, bool) {
+      static void write_list_element_init (xml_formatter& out, int) {
         out.fill().inc().os << "<li>";
       }
 
@@ -179,7 +179,7 @@ namespace persistent {
         in.check_token("<ol>");
       }
 
-      static bool read_list_element_init (xml_parser& in, bool first) {
+      static bool read_list_element_init (xml_parser& in, int) {
         if (in.next_token() == "<li>") {
           in.clear_token();
           return true;

@@ -55,7 +55,7 @@ namespace persistent {
     template<typename Target>
     struct write_traits {
       static void write_list_start (Target&) {}
-      static void write_list_element_init (Target&, bool first) {}
+      static void write_list_element_init (Target&, int num) {}
       static void write_list_element_finish (Target&) {}
       static void write_list_end (Target&) {}
 
@@ -120,10 +120,9 @@ namespace persistent {
     struct writeList_t {
       static void to (Target& out, const V& v) {
         write_traits<Target>::write_list_start(out);
-        bool first = true;
+        int num = 0;
         for (const T& t : v) {
-          write_traits<Target>::write_list_element_init(out, first);
-          first = false;
+          write_traits<Target>::write_list_element_init(out, num++);
           write_any(out, t);
           write_traits<Target>::write_list_element_finish(out);
         }
@@ -258,7 +257,7 @@ namespace persistent {
     template<typename Source>
     struct read_traits {
       static void read_list_start (Source&) {}
-      static bool read_list_element_init (Source&, bool) { return true; }
+      static bool read_list_element_init (Source&, int) { return true; }
       static void read_list_element_finish (Source&) {}
       static void read_list_end (Source&) {}
 
@@ -276,7 +275,7 @@ namespace persistent {
     };
 
     template<typename Source, typename T>
-    void read_value (Source& in, T& t) {
+    inline void read_value (Source& in, T& t) {
       read_value_t<Source, T>::from(in, t);
     }
 
@@ -286,13 +285,13 @@ namespace persistent {
     */
     template<typename Source, typename T, typename Enable = void>
     struct read_any_t {
-      static void from (Source& in, T& t) {
+      static inline void from (Source& in, T& t) {
         read_value(in, t);
       }
     };
 
     template<typename Source, typename T>
-    void read_any (Source& in, T& t) {
+    inline void read_any (Source& in, T& t) {
       read_any_t<Source, T>::from(in, t);
     }
 
@@ -308,7 +307,7 @@ namespace persistent {
     };
 
     template<typename Source, typename T>
-    void read_property (Source& in, type<T>& t) {
+    inline void read_property (Source& in, type<T>& t) {
       read_property_t<Source, T>::from(in, t);
     }
 
@@ -318,7 +317,8 @@ namespace persistent {
       static void from (Source& in, std::vector<T>& v) {
         read_traits<Source>::read_list_start(in);
         v.clear();
-        while (read_traits<Source>::read_list_element_init(in, v.empty())) {
+        int num = 0;
+        while (read_traits<Source>::read_list_element_init(in, num++)) {
           T t;
           read_any(in, t);
           v.push_back(t);
@@ -329,7 +329,7 @@ namespace persistent {
     };
 
     template<typename Source, typename T>
-    void read_vector (Source& in, std::vector<T>& t) {
+    inline void read_vector (Source& in, std::vector<T>& t) {
       read_vector_t<Source, T>::from(in, t);
     }
 
@@ -338,10 +338,9 @@ namespace persistent {
     struct read_array_t {
       static void from (Source& in, std::array<T, S>& a) {
         read_traits<Source>::read_list_start(in);
-        bool first = true;
+        int num = 0;
         for (T& e : a) {
-          read_traits<Source>::read_list_element_init(in, first);
-          first = false;
+          read_traits<Source>::read_list_element_init(in, num++);
           read_any(in, e);
           read_traits<Source>::read_list_element_finish(in);
         }
@@ -350,7 +349,7 @@ namespace persistent {
     };
 
     template<typename Source, typename T, std::size_t S>
-    void read_array (Source& in, std::array<T, S>& t) {
+    inline void read_array (Source& in, std::array<T, S>& t) {
       read_array_t<Source, T, S>::from(in, t);
     }
 
@@ -370,7 +369,7 @@ namespace persistent {
     /// Stop recoursion at element 0
     template<typename Source, typename ... Properties>
     struct read_named<0, Source, Properties...> {
-      static void property (Source&, const std::string& name, std::tuple<type<Properties>& ...>&) {
+      static inline void property (Source&, const std::string& name, std::tuple<type<Properties>& ...>&) {
         throw std::runtime_error(ostreamfmt("Could not find property with name '" << name << "'!"));
       }
     };
@@ -389,27 +388,27 @@ namespace persistent {
     };
 
     template<typename Source, typename ... Properties>
-    void read_tuple (Source& in, std::tuple<type<Properties>&...>& t) {
+    inline void read_tuple (Source& in, std::tuple<type<Properties>&...>& t) {
       read_tuple_t<Source, Properties...>::from(in, t);
     }
 
     /// read basic_struct
     template<typename Source, typename ... Properties>
     struct read_struct_t {
-      static void from (Source& in, basic_struct<Properties...>& t) {
+      static inline void from (Source& in, basic_struct<Properties...>& t) {
         read_tuple(in, t.properites());
       }
     };
 
     template<typename Source, typename ... Properties>
-    void read_struct (Source& in, basic_struct<Properties...>& t) {
+    inline void read_struct (Source& in, basic_struct<Properties...>& t) {
       read_struct_t<Source, Properties...>::from(in, t);
     }
 
     /// detect named property
     template<typename Source, typename T>
     struct read_any_t<Source, type<T>> {
-      static void from (Source& in, type<T>& t) {
+      static inline void from (Source& in, type<T>& t) {
         read_property(in, t);
       }
     };
@@ -417,7 +416,7 @@ namespace persistent {
     /// detect vector
     template<typename Source, typename T>
     struct read_any_t<Source, std::vector<T>> {
-      static void from (Source& in, std::vector<T>& t) {
+      static inline void from (Source& in, std::vector<T>& t) {
         read_vector(in, t);
       }
     };
@@ -425,7 +424,7 @@ namespace persistent {
     /// detect array
     template<typename Source, typename T, std::size_t S>
     struct read_any_t<Source, std::array<T, S>> {
-      static void from (Source& in, std::array<T, S>& t) {
+      static inline void from (Source& in, std::array<T, S>& t) {
         read_array(in, t);
       }
     };
@@ -433,7 +432,7 @@ namespace persistent {
     /// detect struct
     template<typename Source, typename T>
     struct read_any_t<Source, T, typename std::enable_if<std::is_base_of<basic_container, T>::value>::type> {
-      static void from (Source& in, T& t) {
+      static inline void from (Source& in, T& t) {
         read_struct(in, t);
       }
     };

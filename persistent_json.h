@@ -92,8 +92,8 @@ namespace persistent {
         read_traits<std::istream>::read_list_start(in.is);
       }
 
-      static bool read_list_element_init (json_parser& in, bool first) {
-        return read_traits<std::istream>::read_list_element_init(in.is, first);
+      static bool read_list_element_init (json_parser& in, int num) {
+        return read_traits<std::istream>::read_list_element_init(in.is, num);
       }
 
       static void read_list_element_finish (json_parser& in) {
