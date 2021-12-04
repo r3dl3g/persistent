@@ -64,8 +64,8 @@ namespace persistent {
       static void write_property_init (Target&, const std::string&) {}
       static void write_property_finish (Target&, const std::string&) {}
 
-      static void write_object_start (Target&) {}
-      static void write_object_end (Target&) {}
+      static void write_struct_start (Target&) {}
+      static void write_struct_end (Target&) {}
     };
 
     /**
@@ -103,7 +103,7 @@ namespace persistent {
      */
     template<typename Target, typename T>
     struct write_property_t {
-      static void to (Target& out, const type<T>& t) {
+      static void to (Target& out, const prop<T>& t) {
         write_traits<Target>::write_property_init(out, t.name());
         write_any(out, t());
         write_traits<Target>::write_property_finish(out, t.name());
@@ -111,7 +111,7 @@ namespace persistent {
     };
 
     template<typename Target, typename T>
-    void write_property (Target& out, const type<T>& t) {
+    void write_property (Target& out, const prop<T>& t) {
       write_property_t<Target, T>::to(out, t);
     }
 
@@ -161,7 +161,7 @@ namespace persistent {
     */
     template<std::size_t I, typename Target, typename... Types>
     struct write_nth {
-      static void to (Target& out, std::tuple<type<Types>&...> const& t) {
+      static void to (Target& out, std::tuple<prop<Types>&...> const& t) {
         write_nth<I - 1, Target, Types...>::to(out, t);
         write_traits<Target>::write_members_delemiter(out);
         const auto& m = std::get<I>(t);
@@ -172,7 +172,7 @@ namespace persistent {
     /// end recursion at 0 elemnt.
     template<typename Target, typename... Types>
     struct write_nth<0, Target, Types...> {
-      static void to (Target& out, std::tuple<type<Types>&...> const& t) {
+      static void to (Target& out, std::tuple<prop<Types>&...> const& t) {
         const auto& m = std::get<0>(t);
         write_any(out, m);
       }
@@ -181,15 +181,15 @@ namespace persistent {
     /// write tuple
     template<typename Target, typename ... Types>
     struct write_tuple_t {
-      static void to (Target& out, const std::tuple<type<Types>&...>& t) {
-        write_traits<Target>::write_object_start(out);
+      static void to (Target& out, const std::tuple<prop<Types>&...>& t) {
+        write_traits<Target>::write_struct_start(out);
         write_nth<(sizeof...(Types)) - 1, Target, Types...>::to(out, t);
-        write_traits<Target>::write_object_end(out);
+        write_traits<Target>::write_struct_end(out);
       }
     };
 
     template<typename Target, typename... Types>
-    void write_tuple (Target& out, const std::tuple<type<Types>&...>& t) {
+    void write_tuple (Target& out, const std::tuple<prop<Types>&...>& t) {
       write_tuple_t<Target, Types...>::to(out, t);
     }
 
@@ -209,8 +209,8 @@ namespace persistent {
 
     /// detect named property
     template<typename Target, typename T>
-    struct write_any_t<Target, type<T>> {
-      static void to (Target& out, const type<T>& t) {
+    struct write_any_t<Target, prop<T>> {
+      static void to (Target& out, const prop<T>& t) {
         write_property(out, t);
       }
     };
@@ -264,8 +264,8 @@ namespace persistent {
       static void read_property_init (Source&, std::string&) {}
       static void read_property_finish (Source&, const std::string&) {}
 
-      static bool read_object_element_init (Source&, std::string&) { return true; }
-      static void read_object_element_finish (Source&, const std::string&) {}
+      static bool read_next_struct_element (Source&, std::string&) { return true; }
+      static void read_struct_element_finish (Source&, const std::string&) {}
     };
 
     /// read value
@@ -298,7 +298,7 @@ namespace persistent {
     /// read property
     template<typename Source, typename T>
     struct read_property_t {
-      static void from (Source& in, type<T>& t) {
+      static void from (Source& in, prop<T>& t) {
         std::string name;
         read_traits<Source>::read_property_init(in, name);
         read_any(in, t());
@@ -307,7 +307,7 @@ namespace persistent {
     };
 
     template<typename Source, typename T>
-    inline void read_property (Source& in, type<T>& t) {
+    inline void read_property (Source& in, prop<T>& t) {
       read_property_t<Source, T>::from(in, t);
     }
 
@@ -356,7 +356,7 @@ namespace persistent {
     /// read element with name of a tuple
     template<std::size_t I, typename Source, typename ... Types>
     struct read_named {
-      static void property (Source& in, const std::string& name, std::tuple<type<Types>&...>& t) {
+      static void property (Source& in, const std::string& name, std::tuple<prop<Types>&...>& t) {
         auto& f = std::get<I - 1>(t);
         if (name == f.name()) {
           read_any(in, f());
@@ -369,7 +369,7 @@ namespace persistent {
     /// Stop recoursion at element 0
     template<typename Source, typename ... Types>
     struct read_named<0, Source, Types...> {
-      static inline void property (Source&, const std::string& name, std::tuple<type<Types>& ...>&) {
+      static inline void property (Source&, const std::string& name, std::tuple<prop<Types>& ...>&) {
         throw std::runtime_error(ostreamfmt("Could not find property with name '" << name << "'!"));
       }
     };
@@ -377,18 +377,18 @@ namespace persistent {
     /// read tuple
     template<typename Source, typename ... Types>
     struct read_tuple_t {
-      static void from (Source& in, std::tuple<type<Types>&...>& t) {
+      static void from (Source& in, std::tuple<prop<Types>&...>& t) {
         std::string name;
-        while (read_traits<Source>::read_object_element_init(in, name)) {
+        while (read_traits<Source>::read_next_struct_element(in, name)) {
           read_named<sizeof...(Types), Source, Types...>::property(in, name, t);
-          read_traits<Source>::read_object_element_finish(in, name);
+          read_traits<Source>::read_struct_element_finish(in, name);
           name.clear();
         }
       }
     };
 
     template<typename Source, typename ... Types>
-    inline void read_tuple (Source& in, std::tuple<type<Types>&...>& t) {
+    inline void read_tuple (Source& in, std::tuple<prop<Types>&...>& t) {
       read_tuple_t<Source, Types...>::from(in, t);
     }
 
@@ -407,8 +407,8 @@ namespace persistent {
 
     /// detect named property
     template<typename Source, typename T>
-    struct read_any_t<Source, type<T>> {
-      static inline void from (Source& in, type<T>& t) {
+    struct read_any_t<Source, prop<T>> {
+      static inline void from (Source& in, prop<T>& t) {
         read_property(in, t);
       }
     };

@@ -74,11 +74,11 @@ namespace persistent {
       static void write_property_finish (std::ostream&, const std::string&) {
       }
 
-      static void write_object_start (std::ostream& os) {
+      static void write_struct_start (std::ostream& os) {
         os << '{';
       }
 
-      static void write_object_end (std::ostream& os) {
+      static void write_struct_end (std::ostream& os) {
         os << '}';
       }
     };
@@ -128,9 +128,9 @@ namespace persistent {
     //
     // specializations for formatted ostream
     //
-    struct ios_formatter {
+    struct ios_formatter_context {
 
-      ios_formatter (std::ostream& os, bool beautify = true)
+      ios_formatter_context (std::ostream& os, bool beautify = true)
         : os(os)
         , beautify(beautify)
       {}
@@ -141,17 +141,17 @@ namespace persistent {
       bool multi_line = false;
       bool beautify;
 
-      inline ios_formatter& inc () {
+      inline ios_formatter_context& inc () {
         ++deepth;
         return *this;
       }
 
-      inline ios_formatter& dec () {
+      inline ios_formatter_context& dec () {
         --deepth;
         return *this;
       }
 
-      ios_formatter& fill () {
+      ios_formatter_context& fill () {
         if (beautify && multi_line) {
           for (int i = 0; i < deepth; ++i) {
             os << "  ";
@@ -161,7 +161,7 @@ namespace persistent {
         return *this;
       }
 
-      ios_formatter& endl () {
+      ios_formatter_context& endl () {
         if (beautify) {
           os << std::endl;
           multi_line = true;
@@ -172,58 +172,58 @@ namespace persistent {
     };
 
     template<>
-    struct write_traits<ios_formatter> {
+    struct write_traits<ios_formatter_context> {
 
-      static void write_list_element_init (ios_formatter& out, int num) {
+      static void write_list_element_init (ios_formatter_context& out, int num) {
         if (num) {
           out.os << ',';
           out.endl().fill();
         }
       }
 
-      static void write_list_element_finish (ios_formatter&) {}
+      static void write_list_element_finish (ios_formatter_context&) {}
 
-      static void write_members_delemiter (ios_formatter& out) {
+      static void write_members_delemiter (ios_formatter_context& out) {
         out.os << ',';
         out.endl().fill();
       }
 
-      static void write_list_start (ios_formatter& out) {
+      static void write_list_start (ios_formatter_context& out) {
         out.os << "[";
         out.endl().inc().fill();
       }
 
-      static void write_list_end (ios_formatter& out) {
+      static void write_list_end (ios_formatter_context& out) {
         out.endl().dec().fill().os << "]";
       }
 
-      static void write_property_init (ios_formatter& out, const std::string& key) {
+      static void write_property_init (ios_formatter_context& out, const std::string& key) {
         out.os << key << ": ";
       }
 
-      static void write_property_finish (ios_formatter& out, const std::string&) {
+      static void write_property_finish (ios_formatter_context& out, const std::string&) {
       }
 
-      static void write_object_start (ios_formatter& out) {
+      static void write_struct_start (ios_formatter_context& out) {
         out.os << '{';
         out.endl().inc().fill();
       }
 
-      static void write_object_end (ios_formatter& out) {
+      static void write_struct_end (ios_formatter_context& out) {
         out.endl().dec().fill().os << '}';
       }
     };
 
     template<typename T>
-    struct write_value_t<ios_formatter, T> {
-      static void to (ios_formatter& out, const T& t) {
+    struct write_value_t<ios_formatter_context, T> {
+      static void to (ios_formatter_context& out, const T& t) {
         write_value(out.os, t);
       }
     };
 
     template<typename T>
     void write_formatted (std::ostream& os, const T& t, bool beautify = true) {
-      ios_formatter out(os, beautify);
+      ios_formatter_context out(os, beautify);
       write(out, t);
     }
 
@@ -265,7 +265,7 @@ namespace persistent {
 
       static inline void read_property_finish (std::istream&, const std::string&) {}
 
-      static inline bool read_object_element_init (std::istream& is, std::string& key) {
+      static inline bool read_next_struct_element (std::istream& is, std::string& key) {
         char delim = 0;
         is >> std::ws >> delim >> std::ws;
         if ((delim != ',') && (delim != '{') && (delim != '}')) {
@@ -281,7 +281,7 @@ namespace persistent {
         return false;
       }
 
-      static inline void read_object_element_finish (std::istream&, std::string&) {}
+      static inline void read_struct_element_finish (std::istream&, std::string&) {}
 
       static inline char read_char (std::istream& is, const char expected) {
         char delim = 0;
@@ -347,7 +347,7 @@ namespace std {
   }
 
   template<typename T>
-  inline std::ostream& operator << (std::ostream& os, const persistent::type<T>& t) {
+  inline std::ostream& operator << (std::ostream& os, const persistent::prop<T>& t) {
     persistent::io::write(os, t);
     return os;
   }
@@ -360,7 +360,7 @@ namespace std {
   }
 
   template<typename T>
-  inline std::istream& operator >> (std::istream& is, const persistent::type<T>& t) {
+  inline std::istream& operator >> (std::istream& is, const persistent::prop<T>& t) {
     persistent::io::read(is, t);
     return is;
   }

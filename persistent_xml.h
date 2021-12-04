@@ -44,9 +44,9 @@ namespace persistent {
     //
     // specializations for ostream
     //
-    struct xml_formatter : public ios_formatter {
-      xml_formatter (std::ostream& os, bool beautify = true)
-        : ios_formatter(os, beautify)
+    struct xml_formatter_context : public ios_formatter_context {
+      xml_formatter_context (std::ostream& os, bool beautify = true)
+        : ios_formatter_context(os, beautify)
       {}
 
     };
@@ -58,56 +58,56 @@ namespace persistent {
     }
 
     template<>
-    struct write_traits<xml_formatter> {
+    struct write_traits<xml_formatter_context> {
 
-      static void write_list_start (xml_formatter& out) {
+      static void write_list_start (xml_formatter_context& out) {
         out.endl().fill().os << "<ol>",
         out.endl().inc();
       }
 
-      static void write_list_element_init (xml_formatter& out, int) {
+      static void write_list_element_init (xml_formatter_context& out, int) {
         out.fill().inc().os << "<li>";
       }
 
-      static void write_list_element_finish (xml_formatter& out) {
+      static void write_list_element_finish (xml_formatter_context& out) {
         out.dec().fill().os << "</li>";
         out.endl();
       }
 
-      static void write_list_end (xml_formatter& out) {
+      static void write_list_end (xml_formatter_context& out) {
         out.dec().fill().os << "</ol>";
         out.endl();
       }
 
-      static void write_members_delemiter (xml_formatter&) {
+      static void write_members_delemiter (xml_formatter_context&) {
       }
 
-      static void write_property_init (xml_formatter& out, const std::string& name) {
+      static void write_property_init (xml_formatter_context& out, const std::string& name) {
         out.fill().inc().os << "<" << name << '>';
       }
 
-      static void write_property_finish (xml_formatter& out, const std::string& name) {
+      static void write_property_finish (xml_formatter_context& out, const std::string& name) {
         out.dec().fill().os << "</" << name << '>';
         out.endl();
       }
 
-      static void write_object_start (xml_formatter&) {
+      static void write_struct_start (xml_formatter_context&) {
       }
 
-      static void write_object_end (xml_formatter&) {
+      static void write_struct_end (xml_formatter_context&) {
       }
     };
 
     template<typename T>
-    struct write_value_t<xml_formatter, T> {
-      static void to (xml_formatter& out, const T& t) {
+    struct write_value_t<xml_formatter_context, T> {
+      static void to (xml_formatter_context& out, const T& t) {
         write_value(out.os, t);
       }
     };
 
     template<typename T>
     void write_xml (std::ostream& os, const T& t, bool beautify = true) {
-      xml_formatter out(os, beautify);
+      xml_formatter_context out(os, beautify);
       out.os << xml::s_header;
       out.endl().os << xml::s_body;
       out.endl().inc();
@@ -121,8 +121,8 @@ namespace persistent {
     //
     // specializations for xml formatted istream
     //
-    struct xml_parser {
-      xml_parser (std::istream& is)
+    struct xml_parser_context {
+      xml_parser_context (std::istream& is)
         : is(is)
       {}
 
@@ -173,13 +173,13 @@ namespace persistent {
     };
 
     template<>
-    struct read_traits<xml_parser> {
+    struct read_traits<xml_parser_context> {
 
-      static void read_list_start (xml_parser& in) {
+      static void read_list_start (xml_parser_context& in) {
         in.check_token("<ol>");
       }
 
-      static bool read_list_element_init (xml_parser& in, int) {
+      static bool read_list_element_init (xml_parser_context& in, int) {
         if (in.next_token() == "<li>") {
           in.clear_token();
           return true;
@@ -187,15 +187,15 @@ namespace persistent {
         return false;
       }
 
-      static void read_list_element_finish (xml_parser& in) {
+      static void read_list_element_finish (xml_parser_context& in) {
         in.check_token("</li>");
       }
 
-      static void read_list_end (xml_parser& in) {
+      static void read_list_end (xml_parser_context& in) {
         in.check_token("</ol>");
       }
 
-      static void read_property_init (xml_parser& in, std::string& key) {
+      static void read_property_init (xml_parser_context& in, std::string& key) {
         const std::string& token = in.next_token();
         if ((token.size() < 3) || (token.front() != '<') || (token.back() != '>')) {
           throw std::runtime_error(ostreamfmt("Expected '<xyz>' but got '" << token << "'!"));
@@ -204,11 +204,11 @@ namespace persistent {
         in.clear_token();
       }
 
-      static void read_property_finish (xml_parser& in, const std::string& key) {
+      static void read_property_finish (xml_parser_context& in, const std::string& key) {
         in.check_token("</" + key + ">");
       }
 
-      static bool read_object_element_init (xml_parser& in, std::string& key) {
+      static bool read_next_struct_element (xml_parser_context& in, std::string& key) {
         const std::string& token = in.next_token();
         if (in.is.good() && !util::string::starts_with(token, "</") &&
             (token.size() > 2) && (token.front() == '<') && (token.back() == '>')) {
@@ -219,22 +219,22 @@ namespace persistent {
         return false;
       }
 
-      static void read_object_element_finish (xml_parser& in, const std::string& key) {
+      static void read_struct_element_finish (xml_parser_context& in, const std::string& key) {
         in.check_token("</" + key + ">");
       }
 
     };
 
     template<typename T>
-    struct read_value_t<xml_parser, T> {
-      static void from (xml_parser& in, T& t) {
+    struct read_value_t<xml_parser_context, T> {
+      static void from (xml_parser_context& in, T& t) {
         read_value(in.is, t);
       }
     };
 
     template<typename T>
     void read_xml (std::istream& is, T& t) {
-      xml_parser in(is);
+      xml_parser_context in(is);
       in.check_token(xml::s_header);
       in.check_token(xml::s_body);
       read(in, t);

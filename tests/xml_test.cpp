@@ -16,7 +16,7 @@ std::string build_xml (const std::string& t) {
 // --------------------------------------------------------------------------
 void test_read_empty () {
 
-  persistent::type<test_int64> t1("t");
+  persistent::prop<test_int64> t1("t");
   std::istringstream is(build_xml("<t></t>"));
   persistent::io::read_xml(is, t1);
 
@@ -64,7 +64,7 @@ void test_read_1 () {
 // --------------------------------------------------------------------------
 void test_read_2 () {
 
-  persistent::type<test_int64> t1("t");
+  persistent::prop<test_int64> t1("t");
   std::istringstream is(build_xml("<t><i>4711</i><j>815</j></t>"));
   persistent::io::read_xml(is, t1);
 
@@ -77,7 +77,7 @@ void test_read_2 () {
 
 // --------------------------------------------------------------------------
 void test_read_3 () {
-  persistent::type<test_int64> t1("t");
+  persistent::prop<test_int64> t1("t");
   std::istringstream is(build_xml("<t><i>4711</i></t>"));
   persistent::io::read_xml(is, t1);
 
@@ -90,7 +90,7 @@ void test_read_3 () {
 
 // --------------------------------------------------------------------------
 void test_read_4 () {
-  persistent::type<test_int64> t1("t");
+  persistent::prop<test_int64> t1("t");
   std::istringstream is(build_xml(" \n \t <t> \n \t <i> \n \t \n \t 4711 \n \t </i> \n \t </t> \n \t "));
   persistent::io::read_xml(is, t1);
 
@@ -103,7 +103,7 @@ void test_read_4 () {
 
 // --------------------------------------------------------------------------
 void test_read_5 () {
-  persistent::type<test2> t2("t2");
+  persistent::prop<test2> t2("t2");
   std::istringstream is(build_xml("<t2><i1>815</i1><t1><i>911</i><j>203</j></t1><i2>4711</i2></t2>"));
   persistent::io::read_xml(is, t2);
 
@@ -115,7 +115,7 @@ void test_read_5 () {
 
 // --------------------------------------------------------------------------
 void test_read_6 () {
-  persistent::type<test_int64> t1("t1");
+  persistent::prop<test_int64> t1("t1");
   std::istringstream is(build_xml("<t1><i>4711</i><k>815</k></t1>"));
   try {
     persistent::io::read_xml(is, t1);
@@ -131,7 +131,7 @@ void test_read_6 () {
 
 // --------------------------------------------------------------------------
 void test_read_7 () {
-  persistent::type<test3> t3("t3");
+  persistent::prop<test3> t3("t3");
   std::istringstream is(build_xml("<t2><v><ol><li><i>1</i><j>2</j></li><li><i>3</i><j>4</j></li><li><i>5</i><j>6</j></li></ol></v></t2>"));
   persistent::io::read_xml(is, t3);
 

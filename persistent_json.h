@@ -43,16 +43,16 @@ namespace persistent {
     //
     // specializations for json formatted ostream
     //
-    struct json_formatter : public ios_formatter {
-      json_formatter (std::ostream& os, bool beautify = true)
-        : ios_formatter(os, beautify)
+    struct json_formatter_context : public ios_formatter_context {
+      json_formatter_context (std::ostream& os, bool beautify = true)
+        : ios_formatter_context(os, beautify)
       {}
     };
 
     template<>
-    struct write_traits<json_formatter> : public write_traits<ios_formatter> {
+    struct write_traits<json_formatter_context> : public write_traits<ios_formatter_context> {
 
-      static void write_property_init (json_formatter& out, const std::string& key) {
+      static void write_property_init (json_formatter_context& out, const std::string& key) {
         out.os << '"' << key << "\":";
         if (out.beautify) {
           out.os << " ";
@@ -62,15 +62,15 @@ namespace persistent {
     };
 
     template<typename T>
-    struct write_value_t<json_formatter, T> {
-      static void to (json_formatter& out, const T& t) {
+    struct write_value_t<json_formatter_context, T> {
+      static void to (json_formatter_context& out, const T& t) {
         out.os << '"' << t << '"';
       }
     };
 
     template<typename T>
     void inline write_json (std::ostream& os, const T& t, bool beautify = true) {
-      json_formatter out(os, beautify);
+      json_formatter_context out(os, beautify);
       write_any(out, t);
     }
 
@@ -78,8 +78,8 @@ namespace persistent {
     //
     // specializations for json formatted istream
     //
-    struct json_parser {
-      json_parser (std::istream& is)
+    struct json_parser_context {
+      json_parser_context (std::istream& is)
         : is(is)
       {}
 
@@ -87,32 +87,32 @@ namespace persistent {
     };
 
     template<>
-    struct read_traits<json_parser> {
-      static void read_list_start (json_parser& in) {
+    struct read_traits<json_parser_context> {
+      static void read_list_start (json_parser_context& in) {
         read_traits<std::istream>::read_list_start(in.is);
       }
 
-      static bool read_list_element_init (json_parser& in, int num) {
+      static bool read_list_element_init (json_parser_context& in, int num) {
         return read_traits<std::istream>::read_list_element_init(in.is, num);
       }
 
-      static void read_list_element_finish (json_parser& in) {
+      static void read_list_element_finish (json_parser_context& in) {
         read_traits<std::istream>::read_list_element_finish(in.is);
       }
 
-      static void read_list_end (json_parser& in) {
+      static void read_list_end (json_parser_context& in) {
         read_traits<std::istream>::read_list_end(in.is);
       }
 
-      static void read_property_init (json_parser& in, std::string& key) {
+      static void read_property_init (json_parser_context& in, std::string& key) {
         in.is >> std::ws >> util::string::quoted(key);
         read_traits<std::istream>::read_char(in.is, ':');
       }
 
-      static void read_property_finish (json_parser&, const std::string&) {
+      static void read_property_finish (json_parser_context&, const std::string&) {
       }
 
-      static bool read_object_element_init (json_parser& in, std::string& key) {
+      static bool read_next_struct_element (json_parser_context& in, std::string& key) {
         char delim = 0;
         in.is >> std::ws >> delim >> std::ws;
         if ((delim != ',') && (delim != '{') && (delim != '}')) {
@@ -128,13 +128,13 @@ namespace persistent {
         return false;
       }
 
-      static void read_object_element_finish (json_parser&, const std::string&) {}
+      static void read_struct_element_finish (json_parser_context&, const std::string&) {}
 
     };
 
     template<typename T>
-    struct read_value_t<json_parser, T> {
-      static void from (json_parser& in, T& t) {
+    struct read_value_t<json_parser_context, T> {
+      static void from (json_parser_context& in, T& t) {
         in.is >> std::ws;
         if ((in.is.peek() != '"') && (in.is.peek() != '\'')) {
           throw std::runtime_error("Expected string delemiter ' or \" !");
@@ -151,15 +151,15 @@ namespace persistent {
     };
 
     template<>
-    struct read_value_t<json_parser, std::string> {
-      static void from (json_parser& in, std::string& t) {
+    struct read_value_t<json_parser_context, std::string> {
+      static void from (json_parser_context& in, std::string& t) {
         read_value(in.is, t);
       }
     };
 
     template<typename T>
     void read_json (std::istream& is, T& t) {
-      json_parser f(is);
+      json_parser_context f(is);
       read(f, t);
     }
 

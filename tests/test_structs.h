@@ -39,9 +39,9 @@ struct test2 : public basic_container {
     members = rhs.members;
   }
 
-  int64 i1;
-  type<test_int64> t1;
-  int64 i2;
+  prop<int64_t> i1;
+  prop<test_int64> t1;
+  prop<int64_t> i2;
 
   typedef member_variables_t<decltype(i1), decltype(t1), decltype(i2)> member_variables;
 
@@ -52,7 +52,7 @@ struct test2 : public basic_container {
 // --------------------------------------------------------------------------
 struct test3 : public basic_container {
 private:
-  persistent::vector<test_int64> m_v;
+  prop<std::vector<test_int64>> m_v;
 
 public:
   typedef member_variables_t<decltype(m_v)> member_variables;

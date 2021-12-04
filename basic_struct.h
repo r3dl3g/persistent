@@ -39,51 +39,51 @@
 namespace persistent {
 
   template<typename T>
-  using type = named_property<T, const char*>;
+  using prop = named_property<T, const char*>;
 
   // --------------------------------------------------------------------------
   //
   // item declarations
   //
-  using string = type<std::string>;
-  using boolean = type<bool>;
-  using int8 = type<int8_t>;
-  using int16 = type<int16_t>;
-  using int32 = type<int32_t>;
-  using int64 = type<int64_t>;
-  using uint8 = type<uint8_t>;
-  using uint16 = type<uint16_t>;
-  using uint32 = type<uint32_t>;
-  using uint64 = type<uint64_t>;
-  using byte = type<uint8_t>;
-  using word = type<uint16_t>;
-  using dword = type<uint32_t>;
-  using qword = type<uint64_t>;
-  using integer = type<int>;
-  using uinteger = type<unsigned>;
-  using float32 = type<float>;
-  using float64 = type<double>;
+  using string = prop<std::string>;
+  using boolean = prop<bool>;
+  using int8 = prop<int8_t>;
+  using int16 = prop<int16_t>;
+  using int32 = prop<int32_t>;
+  using int64 = prop<int64_t>;
+  using uint8 = prop<uint8_t>;
+  using uint16 = prop<uint16_t>;
+  using uint32 = prop<uint32_t>;
+  using uint64 = prop<uint64_t>;
+  using byte = prop<uint8_t>;
+  using word = prop<uint16_t>;
+  using dword = prop<uint32_t>;
+  using qword = prop<uint64_t>;
+  using integer = prop<int>;
+  using uinteger = prop<unsigned>;
+  using float32 = prop<float>;
+  using float64 = prop<double>;
 
   // --------------------------------------------------------------------------
   //
   // List of persistent values with same name
   //
   template<typename T>
-  using vector = typename type<T>::vector;
+  using vector = typename prop<T>::vector;
 
   // --------------------------------------------------------------------------
   //
   // List of fix count of persistent values with same name
   //
   template<typename T, std::size_t S>
-  using array = typename type<T>::array<S>;
+  using array = typename prop<T>::array<S>;
 
   // --------------------------------------------------------------------------
   //
   // structure to  hold all persistent members of a struct.
   //
   template<typename... Types>
-  using member_variables_t = std::tuple<type<typename Types::value_type>& ...>;
+  using member_variables_t = std::tuple<prop<typename Types::value_type>& ...>;
 
   // --------------------------------------------------------------------------
   //
@@ -103,7 +103,7 @@ namespace persistent {
     typedef member_variables_t<Type, Types...> member_variables;
 
     // a persistent basic_struct needs at least one member
-    basic_struct (type<typename Type::value_type>& member, type<typename Types::value_type>&... members)
+    basic_struct (prop<typename Type::value_type>& member, prop<typename Types::value_type>&... members)
       : members(member, members...)
     {}
 

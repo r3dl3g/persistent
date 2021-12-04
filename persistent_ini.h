@@ -103,8 +103,8 @@ namespace persistent {
     //
     // specializations for json formatted ostream
     //
-    struct ini_formatter {
-      ini_formatter (std::ostream& os)
+    struct ini_formatter_context {
+      ini_formatter_context (std::ostream& os)
         : os(os)
       {}
 
@@ -123,44 +123,44 @@ namespace persistent {
     };
 
     template<>
-    struct write_traits<ini_formatter> {
+    struct write_traits<ini_formatter_context> {
 
-      static void write_property_init (ini_formatter& out, const std::string& key) {
+      static void write_property_init (ini_formatter_context& out, const std::string& key) {
         out.path.push(key);
       }
 
-      static void write_property_finish (ini_formatter& out, const std::string&) {
+      static void write_property_finish (ini_formatter_context& out, const std::string&) {
         out.path.pop();
       }
 
-      static void write_object_start (ini_formatter& out) {
+      static void write_struct_start (ini_formatter_context& out) {
       }
 
-      static void write_object_end (ini_formatter& out) {
+      static void write_struct_end (ini_formatter_context& out) {
       }
 
-      static void write_members_delemiter (ini_formatter& out) {
+      static void write_members_delemiter (ini_formatter_context& out) {
       }
 
-      static void write_list_element_init (ini_formatter& out, int num) {
+      static void write_list_element_init (ini_formatter_context& out, int num) {
         out.path.push(ostreamfmt(num));
       }
 
-      static void write_list_element_finish (ini_formatter& out) {
+      static void write_list_element_finish (ini_formatter_context& out) {
         out.path.pop();
       }
 
-      static void write_list_start (ini_formatter& out) {
+      static void write_list_start (ini_formatter_context& out) {
       }
 
-      static void write_list_end (ini_formatter& out) {
+      static void write_list_end (ini_formatter_context& out) {
       }
 
     };
 
     template<typename T>
-    struct write_value_t<ini_formatter, T> {
-      static void to (ini_formatter& out, const T& t) {
+    struct write_value_t<ini_formatter_context, T> {
+      static void to (ini_formatter_context& out, const T& t) {
         write_value(out.print_path(), t);
         out.endl();
       }
@@ -168,7 +168,7 @@ namespace persistent {
 
     template<typename T>
     void write_ini (std::ostream& os, const T& t) {
-      ini_formatter out(os);
+      ini_formatter_context out(os);
       write(out, t);
     }
 
@@ -176,8 +176,8 @@ namespace persistent {
     //
     // specializations for json formatted ostream
     //
-    struct ini_parser {
-      ini_parser (std::istream& is)
+    struct ini_parser_context {
+      ini_parser_context (std::istream& is)
         : is(is)
       {}
 
@@ -192,27 +192,27 @@ namespace persistent {
     };
 
     template<>
-    struct read_traits<ini_parser> {
-      static void read_list_start (ini_parser&) {}
-      static bool read_list_element_init (ini_parser&, int) {
+    struct read_traits<ini_parser_context> {
+      static void read_list_start (ini_parser_context&) {}
+      static bool read_list_element_init (ini_parser_context&, int) {
         return false;
       }
 
-      static void read_list_element_finish (ini_parser&) {}
-      static void read_list_end (ini_parser&) {}
-      static void read_property_init (ini_parser&, std::string&) {}
-      static void read_property_finish (ini_parser&, const std::string&) {}
-      static bool read_object_element_init (ini_parser&, std::string&) {
+      static void read_list_element_finish (ini_parser_context&) {}
+      static void read_list_end (ini_parser_context&) {}
+      static void read_property_init (ini_parser_context&, std::string&) {}
+      static void read_property_finish (ini_parser_context&, const std::string&) {}
+      static bool read_next_struct_element (ini_parser_context&, std::string&) {
         return false;
       }
 
-      static void read_object_element_finish (ini_parser&, const std::string&) {}
+      static void read_struct_element_finish (ini_parser_context&, const std::string&) {}
 
     };
 
     template<typename T>
-    struct read_property_t<ini_parser, T> {
-      static void from (ini_parser& in, type<T>& t) {
+    struct read_property_t<ini_parser_context, T> {
+      static void from (ini_parser_context& in, prop<T>& t) {
         in.path.push(t.name());
         read_any(in, t());
         in.path.pop();
@@ -220,8 +220,8 @@ namespace persistent {
     };
 
     template<typename T>
-    struct read_vector_t<ini_parser, T> {
-      static void from (ini_parser& in, std::vector<T>& v) {
+    struct read_vector_t<ini_parser_context, T> {
+      static void from (ini_parser_context& in, std::vector<T>& v) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
           in.path.push(index);
@@ -236,8 +236,8 @@ namespace persistent {
     };
 
     template<typename T, std::size_t S>
-    struct read_array_t<ini_parser, T, S> {
-      static void from (ini_parser& in, std::array<T, S>& a) {
+    struct read_array_t<ini_parser_context, T, S> {
+      static void from (ini_parser_context& in, std::array<T, S>& a) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
           in.path.push(index);
@@ -249,12 +249,12 @@ namespace persistent {
     };
 
     template<typename ... Types>
-    struct read_tuple_t<ini_parser, Types...> {
-      static void from (ini_parser& in, std::tuple<type<Types>&...>& t) {
+    struct read_tuple_t<ini_parser_context, Types...> {
+      static void from (ini_parser_context& in, std::tuple<prop<Types>&...>& t) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
           in.path.push(index);
-          read_named<sizeof...(Types), ini_parser, Types...>::property(in, index, t);
+          read_named<sizeof...(Types), ini_parser_context, Types...>::property(in, index, t);
           in.path.pop();
 
         }
@@ -262,8 +262,8 @@ namespace persistent {
     };
 
     template<typename T>
-    struct read_value_t<ini_parser, T> {
-      static void from (ini_parser& in, T& t) {
+    struct read_value_t<ini_parser_context, T> {
+      static void from (ini_parser_context& in, T& t) {
         if (in.match()) {
           read_value(in.is, t);
         }
@@ -272,7 +272,7 @@ namespace persistent {
 
     template<typename T>
     void read_ini (std::istream& is, T& t) {
-      ini_parser in(is);
+      ini_parser_context in(is);
       is >> std::ws;
       while (is.good()) {
         std::string key;
