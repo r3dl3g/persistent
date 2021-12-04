@@ -45,7 +45,7 @@ namespace persistent {
     // specializations for ostream
     //
     template<>
-    struct write_traits<std::ostream> {
+    struct formatter<std::ostream> {
 
       static void write_list_element_init (std::ostream& os, int num) {
         if (num) {
@@ -172,7 +172,7 @@ namespace persistent {
     };
 
     template<>
-    struct write_traits<ios_formatter_context> {
+    struct formatter<ios_formatter_context> {
 
       static void write_list_element_init (ios_formatter_context& out, int num) {
         if (num) {
@@ -232,7 +232,7 @@ namespace persistent {
     // specializations for istream
     //
     template<>
-    struct read_traits<std::istream> {
+    struct parser<std::istream> {
       static inline void read_list_start (std::istream& is) {
         read_char(is, '[');
       }

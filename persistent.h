@@ -53,7 +53,7 @@ namespace persistent {
      * traits to allow target specific prefix and suffixes.
      */
     template<typename Target>
-    struct write_traits {
+    struct formatter {
       static void write_list_start (Target&) {}
       static void write_list_element_init (Target&, int num) {}
       static void write_list_element_finish (Target&) {}
@@ -104,9 +104,9 @@ namespace persistent {
     template<typename Target, typename T>
     struct write_property_t {
       static void to (Target& out, const prop<T>& t) {
-        write_traits<Target>::write_property_init(out, t.name());
+        formatter<Target>::write_property_init(out, t.name());
         write_any(out, t());
-        write_traits<Target>::write_property_finish(out, t.name());
+        formatter<Target>::write_property_finish(out, t.name());
       }
     };
 
@@ -119,14 +119,14 @@ namespace persistent {
     template<typename Target, typename T, typename V>
     struct writeList_t {
       static void to (Target& out, const V& v) {
-        write_traits<Target>::write_list_start(out);
+        formatter<Target>::write_list_start(out);
         int num = 0;
         for (const T& t : v) {
-          write_traits<Target>::write_list_element_init(out, num++);
+          formatter<Target>::write_list_element_init(out, num++);
           write_any(out, t);
-          write_traits<Target>::write_list_element_finish(out);
+          formatter<Target>::write_list_element_finish(out);
         }
-        write_traits<Target>::write_list_end(out);
+        formatter<Target>::write_list_end(out);
       }
     };
 
@@ -163,7 +163,7 @@ namespace persistent {
     struct write_nth {
       static void to (Target& out, std::tuple<prop<Types>&...> const& t) {
         write_nth<I - 1, Target, Types...>::to(out, t);
-        write_traits<Target>::write_members_delemiter(out);
+        formatter<Target>::write_members_delemiter(out);
         const auto& m = std::get<I>(t);
         write_any(out, m);
       }
@@ -182,9 +182,9 @@ namespace persistent {
     template<typename Target, typename ... Types>
     struct write_tuple_t {
       static void to (Target& out, const std::tuple<prop<Types>&...>& t) {
-        write_traits<Target>::write_struct_start(out);
+        formatter<Target>::write_struct_start(out);
         write_nth<(sizeof...(Types)) - 1, Target, Types...>::to(out, t);
-        write_traits<Target>::write_struct_end(out);
+        formatter<Target>::write_struct_end(out);
       }
     };
 
@@ -255,7 +255,7 @@ namespace persistent {
      * traits to allow source specific parsing.
      */
     template<typename Source>
-    struct read_traits {
+    struct parser {
       static void read_list_start (Source&) {}
       static bool read_list_element_init (Source&, int) { return true; }
       static void read_list_element_finish (Source&) {}
@@ -300,9 +300,9 @@ namespace persistent {
     struct read_property_t {
       static void from (Source& in, prop<T>& t) {
         std::string name;
-        read_traits<Source>::read_property_init(in, name);
+        parser<Source>::read_property_init(in, name);
         read_any(in, t());
-        read_traits<Source>::read_property_finish(in, name);
+        parser<Source>::read_property_finish(in, name);
       }
     };
 
@@ -315,16 +315,16 @@ namespace persistent {
     template<typename Source, typename T>
     struct read_vector_t {
       static void from (Source& in, std::vector<T>& v) {
-        read_traits<Source>::read_list_start(in);
+        parser<Source>::read_list_start(in);
         v.clear();
         int num = 0;
-        while (read_traits<Source>::read_list_element_init(in, num++)) {
+        while (parser<Source>::read_list_element_init(in, num++)) {
           T t;
           read_any(in, t);
           v.push_back(t);
-          read_traits<Source>::read_list_element_finish(in);
+          parser<Source>::read_list_element_finish(in);
         }
-        read_traits<Source>::read_list_end(in);
+        parser<Source>::read_list_end(in);
       }
     };
 
@@ -337,14 +337,14 @@ namespace persistent {
     template<typename Source, typename T, std::size_t S>
     struct read_array_t {
       static void from (Source& in, std::array<T, S>& a) {
-        read_traits<Source>::read_list_start(in);
+        parser<Source>::read_list_start(in);
         int num = 0;
         for (T& e : a) {
-          read_traits<Source>::read_list_element_init(in, num++);
+          parser<Source>::read_list_element_init(in, num++);
           read_any(in, e);
-          read_traits<Source>::read_list_element_finish(in);
+          parser<Source>::read_list_element_finish(in);
         }
-        read_traits<Source>::read_list_end(in);
+        parser<Source>::read_list_end(in);
       }
     };
 
@@ -379,9 +379,9 @@ namespace persistent {
     struct read_tuple_t {
       static void from (Source& in, std::tuple<prop<Types>&...>& t) {
         std::string name;
-        while (read_traits<Source>::read_next_struct_element(in, name)) {
+        while (parser<Source>::read_next_struct_element(in, name)) {
           read_named<sizeof...(Types), Source, Types...>::property(in, name, t);
-          read_traits<Source>::read_struct_element_finish(in, name);
+          parser<Source>::read_struct_element_finish(in, name);
           name.clear();
         }
       }

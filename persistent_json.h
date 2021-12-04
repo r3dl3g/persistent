@@ -50,7 +50,7 @@ namespace persistent {
     };
 
     template<>
-    struct write_traits<json_formatter_context> : public write_traits<ios_formatter_context> {
+    struct formatter<json_formatter_context> : public formatter<ios_formatter_context> {
 
       static void write_property_init (json_formatter_context& out, const std::string& key) {
         out.os << '"' << key << "\":";
@@ -87,26 +87,26 @@ namespace persistent {
     };
 
     template<>
-    struct read_traits<json_parser_context> {
+    struct parser<json_parser_context> {
       static void read_list_start (json_parser_context& in) {
-        read_traits<std::istream>::read_list_start(in.is);
+        parser<std::istream>::read_list_start(in.is);
       }
 
       static bool read_list_element_init (json_parser_context& in, int num) {
-        return read_traits<std::istream>::read_list_element_init(in.is, num);
+        return parser<std::istream>::read_list_element_init(in.is, num);
       }
 
       static void read_list_element_finish (json_parser_context& in) {
-        read_traits<std::istream>::read_list_element_finish(in.is);
+        parser<std::istream>::read_list_element_finish(in.is);
       }
 
       static void read_list_end (json_parser_context& in) {
-        read_traits<std::istream>::read_list_end(in.is);
+        parser<std::istream>::read_list_end(in.is);
       }
 
       static void read_property_init (json_parser_context& in, std::string& key) {
         in.is >> std::ws >> util::string::quoted(key);
-        read_traits<std::istream>::read_char(in.is, ':');
+        parser<std::istream>::read_char(in.is, ':');
       }
 
       static void read_property_finish (json_parser_context&, const std::string&) {

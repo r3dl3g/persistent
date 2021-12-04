@@ -123,7 +123,7 @@ namespace persistent {
     };
 
     template<>
-    struct write_traits<ini_formatter_context> {
+    struct formatter<ini_formatter_context> {
 
       static void write_property_init (ini_formatter_context& out, const std::string& key) {
         out.path.push(key);
@@ -192,7 +192,7 @@ namespace persistent {
     };
 
     template<>
-    struct read_traits<ini_parser_context> {
+    struct parser<ini_parser_context> {
       static void read_list_start (ini_parser_context&) {}
       static bool read_list_element_init (ini_parser_context&, int) {
         return false;

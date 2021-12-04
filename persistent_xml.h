@@ -58,7 +58,7 @@ namespace persistent {
     }
 
     template<>
-    struct write_traits<xml_formatter_context> {
+    struct formatter<xml_formatter_context> {
 
       static void write_list_start (xml_formatter_context& out) {
         out.endl().fill().os << "<ol>",
@@ -173,7 +173,7 @@ namespace persistent {
     };
 
     template<>
-    struct read_traits<xml_parser_context> {
+    struct parser<xml_parser_context> {
 
       static void read_list_start (xml_parser_context& in) {
         in.check_token("<ol>");
