@@ -159,10 +159,10 @@ namespace persistent {
     /**
     * write recursive all elements of a tuple
     */
-    template<std::size_t I, typename Target, typename... Properties>
+    template<std::size_t I, typename Target, typename... Types>
     struct write_nth {
-      static void to (Target& out, std::tuple<type<Properties>&...> const& t) {
-        write_nth<I - 1, Target, Properties...>::to(out, t);
+      static void to (Target& out, std::tuple<type<Types>&...> const& t) {
+        write_nth<I - 1, Target, Types...>::to(out, t);
         write_traits<Target>::write_members_delemiter(out);
         const auto& m = std::get<I>(t);
         write_any(out, m);
@@ -170,41 +170,41 @@ namespace persistent {
     };
 
     /// end recursion at 0 elemnt.
-    template<typename Target, typename... Properties>
-    struct write_nth<0, Target, Properties...> {
-      static void to (Target& out, std::tuple<type<Properties>&...> const& t) {
+    template<typename Target, typename... Types>
+    struct write_nth<0, Target, Types...> {
+      static void to (Target& out, std::tuple<type<Types>&...> const& t) {
         const auto& m = std::get<0>(t);
         write_any(out, m);
       }
     };
 
     /// write tuple
-    template<typename Target, typename ... Properties>
+    template<typename Target, typename ... Types>
     struct write_tuple_t {
-      static void to (Target& out, const std::tuple<type<Properties>&...>& t) {
+      static void to (Target& out, const std::tuple<type<Types>&...>& t) {
         write_traits<Target>::write_object_start(out);
-        write_nth<(sizeof...(Properties)) - 1, Target, Properties...>::to(out, t);
+        write_nth<(sizeof...(Types)) - 1, Target, Types...>::to(out, t);
         write_traits<Target>::write_object_end(out);
       }
     };
 
-    template<typename Target, typename... Properties>
-    void write_tuple (Target& out, const std::tuple<type<Properties>&...>& t) {
-      write_tuple_t<Target, Properties...>::to(out, t);
+    template<typename Target, typename... Types>
+    void write_tuple (Target& out, const std::tuple<type<Types>&...>& t) {
+      write_tuple_t<Target, Types...>::to(out, t);
     }
 
     /// write basic_struct
-    template<typename Target, typename ... Properties>
+    template<typename Target, typename ... Types>
     struct write_struct_t {
-      static void to (Target& out, const basic_struct<Properties...>& t) {
-        write_tuple(out, t.properites());
+      static void to (Target& out, const basic_struct<Types...>& t) {
+        write_tuple(out, persistent::get_members(t));
       }
     };
 
     /// write struct helper
-    template<typename Target, typename ... Properties>
-    void write_struct (Target& out, const basic_struct<Properties...>& t) {
-      write_struct_t<Target, Properties...>::to(out, t);
+    template<typename Target, typename ... Types>
+    void write_struct (Target& out, const basic_struct<Types...>& t) {
+      write_struct_t<Target, Types...>::to(out, t);
     }
 
     /// detect named property
@@ -235,7 +235,7 @@ namespace persistent {
     template<typename Target, typename T>
     struct write_any_t<Target, T, typename std::enable_if<std::is_base_of<basic_container, T>::value>::type> {
       static void to (Target& out, const T& t) {
-        write_struct(out, t);
+        write_tuple(out, persistent::get_members(t));
       }
     };
 
@@ -354,55 +354,55 @@ namespace persistent {
     }
 
     /// read element with name of a tuple
-    template<std::size_t I, typename Source, typename ... Properties>
+    template<std::size_t I, typename Source, typename ... Types>
     struct read_named {
-      static void property (Source& in, const std::string& name, std::tuple<type<Properties>&...>& t) {
+      static void property (Source& in, const std::string& name, std::tuple<type<Types>&...>& t) {
         auto& f = std::get<I - 1>(t);
         if (name == f.name()) {
           read_any(in, f());
         } else {
-          read_named<I - 1, Source, Properties...>::property(in, name, t);
+          read_named<I - 1, Source, Types...>::property(in, name, t);
         }
       }
     };
 
     /// Stop recoursion at element 0
-    template<typename Source, typename ... Properties>
-    struct read_named<0, Source, Properties...> {
-      static inline void property (Source&, const std::string& name, std::tuple<type<Properties>& ...>&) {
+    template<typename Source, typename ... Types>
+    struct read_named<0, Source, Types...> {
+      static inline void property (Source&, const std::string& name, std::tuple<type<Types>& ...>&) {
         throw std::runtime_error(ostreamfmt("Could not find property with name '" << name << "'!"));
       }
     };
 
     /// read tuple
-    template<typename Source, typename ... Properties>
+    template<typename Source, typename ... Types>
     struct read_tuple_t {
-      static void from (Source& in, std::tuple<type<Properties>&...>& t) {
+      static void from (Source& in, std::tuple<type<Types>&...>& t) {
         std::string name;
         while (read_traits<Source>::read_object_element_init(in, name)) {
-          read_named<sizeof...(Properties), Source, Properties...>::property(in, name, t);
+          read_named<sizeof...(Types), Source, Types...>::property(in, name, t);
           read_traits<Source>::read_object_element_finish(in, name);
           name.clear();
         }
       }
     };
 
-    template<typename Source, typename ... Properties>
-    inline void read_tuple (Source& in, std::tuple<type<Properties>&...>& t) {
-      read_tuple_t<Source, Properties...>::from(in, t);
+    template<typename Source, typename ... Types>
+    inline void read_tuple (Source& in, std::tuple<type<Types>&...>& t) {
+      read_tuple_t<Source, Types...>::from(in, t);
     }
 
     /// read basic_struct
-    template<typename Source, typename ... Properties>
+    template<typename Source, typename ... Types>
     struct read_struct_t {
-      static inline void from (Source& in, basic_struct<Properties...>& t) {
-        read_tuple(in, t.properites());
+      static inline void from (Source& in, basic_struct<Types...>& t) {
+        read_tuple(in, persistent::get_members(t));
       }
     };
 
-    template<typename Source, typename ... Properties>
-    inline void read_struct (Source& in, basic_struct<Properties...>& t) {
-      read_struct_t<Source, Properties...>::from(in, t);
+    template<typename Source, typename ... Types>
+    inline void read_struct (Source& in, basic_struct<Types...>& t) {
+      read_struct_t<Source, Types...>::from(in, t);
     }
 
     /// detect named property
@@ -433,7 +433,7 @@ namespace persistent {
     template<typename Source, typename T>
     struct read_any_t<Source, T, typename std::enable_if<std::is_base_of<basic_container, T>::value>::type> {
       static inline void from (Source& in, T& t) {
-        read_struct(in, t);
+        read_tuple(in, persistent::get_members(t));
       }
     };
 

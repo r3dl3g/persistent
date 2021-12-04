@@ -69,54 +69,21 @@ namespace persistent {
   // List of persistent values with same name
   //
   template<typename T>
-  using vector = type<std::vector<T>>;
+  using vector = typename type<T>::vector;
 
   // --------------------------------------------------------------------------
   //
   // List of fix count of persistent values with same name
   //
   template<typename T, std::size_t S>
-  using array = type<std::array<T, S>>;
+  using array = typename type<T>::array<S>;
 
   // --------------------------------------------------------------------------
-  namespace detail {
-
-    // --------------------------------------------------------------------------
-    //
-    // copy operation for N th element of a tuple
-    //
-    template<std::size_t N, typename ... Properties>
-    struct copy {
-      typedef std::tuple<type<Properties>& ...> property_list;
-
-      static void properties (const property_list& from, const property_list& to) {
-        copy<N - 1, Properties...>::properties(from, to);
-        const auto& f = std::get<N - 1>(from);
-        const auto& t = std::get<N - 1>(to);
-        t.access().set(f());
-      }
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // Stop recoursion at element 0
-    //
-    template<typename ... Properties>
-    struct copy<0, Properties...> {
-      typedef std::tuple<type<Properties>& ...> property_list;
-      static inline void properties (const property_list& /*from*/, const property_list& /*to*/) {}
-    };
-
-    // --------------------------------------------------------------------------
-    //
-    // helper to recoursive copy the members of a tuple
-    //
-    template<typename ... Properties>
-    void copy_properties (const std::tuple<type<Properties>& ...>&from, const std::tuple<type<Properties>& ...>&to) {
-      copy<sizeof...(Properties), Properties...>::properties(from, to);
-    }
-
-  } // namespace detail
+  //
+  // structure to  hold all persistent members of a struct.
+  //
+  template<typename... Types>
+  using member_variables_t = std::tuple<type<typename Types::value_type>& ...>;
 
   // --------------------------------------------------------------------------
   //
@@ -129,49 +96,58 @@ namespace persistent {
   // class basic_struct.
   // Base class for a persistent struct.
   //
-  template<typename ... Properties>
+  template<typename Type, typename ... Types>
   struct basic_struct : public basic_container {
 
     // A list with references to all member properties of this struct
-    typedef std::tuple<type<Properties>& ...> property_list;
+    typedef member_variables_t<Type, Types...> member_variables;
 
-    basic_struct (type<Properties>&... members)
-      : m_properites(members...)
+    // a persistent basic_struct needs at least one member
+    basic_struct (type<typename Type::value_type>& member, type<typename Types::value_type>&... members)
+      : members(member, members...)
     {}
 
-    basic_struct (const basic_struct&) = delete;
-    basic_struct (const basic_struct&&) = delete;
-
-    const property_list& properites () const {
-      return m_properites;
-    }
-
-    property_list& properites () {
-      return m_properites;
-    }
+    basic_struct () = delete;
+    basic_struct (const basic_struct&) = default;
+    basic_struct (basic_struct&&) = default;
 
     const basic_struct& operator= (const basic_struct& rhs) {
-      copy_from(rhs);
+      if (this != &rhs) {
+        members = rhs.members;
+      }
       return *this;
     }
 
     bool operator== (const basic_struct& rhs) const {
-      return m_properites == rhs.m_properites;
+      return (this == &rhs) || (members == rhs.members);
     }
 
     bool operator!= (const basic_struct& rhs) const {
       return !operator==(rhs);
     }
 
-  protected:
-    void copy_from (const basic_struct& rhs) {
-      detail::copy_properties(rhs.m_properites, m_properites);
+    member_variables& get_members () {
+      return members;
     }
 
-  private:
+    const member_variables& get_members () const {
+      return members;
+    }
+
+  protected:
     // hold references to all members
-    property_list m_properites;
+    member_variables members;
   };
+
+  template<typename T>
+  auto get_members (T& t) -> typename T::member_variables& {
+    return t.get_members();
+  }
+
+  template<typename T>
+  auto get_members (const T& t) -> const typename T::member_variables& {
+    return t.get_members();
+  }
 
 } // namespace persistent
 

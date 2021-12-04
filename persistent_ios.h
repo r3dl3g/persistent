@@ -118,6 +118,12 @@ namespace persistent {
       }
     };
 
+    template<typename T>
+    void write_stream(std::ostream& os, const T& t) {
+      write(os, t);
+    }
+
+
     // --------------------------------------------------------------------------
     //
     // specializations for formatted ostream
@@ -320,6 +326,12 @@ namespace persistent {
       }
     };
 
+    template<typename T>
+    void read_stream (std::istream& is, T& t) {
+      read(is, t);
+    }
+
+
   } // namespace io
 
 } // namespace persistent
@@ -327,9 +339,9 @@ namespace persistent {
 namespace std {
 
   // --------------------------------------------------------------------------
-  template<typename ... Properties>
+  template<typename ... Types>
   inline std::ostream& operator << (std::ostream& os, 
-                                    const persistent::basic_struct<Properties...>& t) {
+                                    const persistent::basic_struct<Types...>& t) {
     persistent::io::write(os, t);
     return os;
   }
@@ -341,8 +353,8 @@ namespace std {
   }
 
   // --------------------------------------------------------------------------
-  template<typename ... Properties>
-  inline std::istream& operator >> (std::istream& is, persistent::basic_struct<Properties...>& t) {
+  template<typename ... Types>
+  inline std::istream& operator >> (std::istream& is, persistent::basic_struct<Types...>& t) {
     persistent::io::read(is, t);
     return is;
   }

@@ -62,16 +62,22 @@ namespace persistent {
     using uinteger = property<unsigned>;
     using float32 = property<float>;
     using float64 = property<double>;
+
     using vector = property<std::vector<T>>;
+
     template<std::size_t S>
     using array = property<std::array<T, S>>;
 
     /**
-    * Default constructor with Optional default value.
+    * Default constructor with optional default value.
     */
     inline property (const T& value = T{})
       : m_value(value)
     {}
+
+    inline property* clone () const {
+      return new property(m_value);
+    }
 
     /// compare equal with same property
     inline bool operator== (const property& rhs) const {
@@ -88,56 +94,21 @@ namespace persistent {
       return m_value;
     }
 
-    /// setter
-    inline void operator() (const value_type& v) {
-      m_value = v;
+    inline const value_type& get () const {
+      return m_value;
     }
 
-    /// write accessor
+    /// setter
     inline value_type& operator() () {
       return m_value;
     }
 
-    /// assignment
-    inline property& operator= (const property& rhs) {
-      m_value = rhs.m_value;
-      return *this;
+    inline void operator() (const value_type& v) {
+      m_value = v;
     }
 
-    /// create a copy with same value
-    inline property* clone () const {
-      return new property(*this);
-    }
-
-    // accessor, not protected but hide the simple write accessors.
-    struct accessor {
-      static inline value_type& get (const property<T>& t) {
-        return t.m_value;
-      }
-
-      static inline void set (const property<T>& t, const value_type& v) {
-        t.m_value = v;
-      }
-
-      inline value_type& get () {
-        return t.m_value;
-      }
-
-      inline void set (const value_type& v) {
-        t.m_value = v;
-      }
-
-    private:
-      friend property;
-      inline accessor (const property& t)
-        : t(t)
-      {}
-
-      const property& t;
-    };
-
-    accessor access () const {
-      return accessor(*this);
+    inline void set (const value_type& v) {
+      m_value = v;
     }
 
   private:

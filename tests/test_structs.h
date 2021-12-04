@@ -3,9 +3,12 @@
 
 #include "persistent/basic_struct.h"
 
+using namespace persistent;
+
 // --------------------------------------------------------------------------
-struct test_int64 : public persistent::basic_struct<int64_t, int64_t> {
-  typedef persistent::basic_struct<int64_t, int64_t> super;
+struct test_int64 : public basic_struct<int64, int64> {
+  typedef basic_struct<int64, int64> super;
+
   test_int64 ()
     : super(i, j)
     , i("i")
@@ -13,54 +16,91 @@ struct test_int64 : public persistent::basic_struct<int64_t, int64_t> {
   {}
 
   test_int64 (const test_int64& rhs)
-    : test_int64()
-  {
-    super::operator=(rhs);
+    : test_int64 () {
+    operator=(rhs);
   }
 
-  persistent::int64 i;
-  persistent::int64 j;
+  int64 i;
+  int64 j;
 };
 
-// --------------------------------------------------------------------------
-struct test2 : public persistent::basic_struct<int64_t, test_int64, int64_t> {
-  typedef persistent::basic_struct<int64_t, test_int64, int64_t> super;
+// ----------------------------------------------------------------------------------------------------------------------------------------------------
+struct test2 : public basic_container {
 
   test2 ()
-    : super(i1, t1, i2)
+    : members(i1, t1, i2)
     , i1("i1")
     , t1("t1")
     , i2("i2")
   {}
 
   test2 (const test2& rhs)
-    : test2()
-  {
-    super::operator=(rhs);
+    : test2() {
+    members = rhs.members;
   }
 
-  persistent::int64 i1;
-  persistent::type<test_int64> t1;
-  persistent::int64 i2;
+  int64 i1;
+  type<test_int64> t1;
+  int64 i2;
+
+  typedef member_variables_t<decltype(i1), decltype(t1), decltype(i2)> member_variables;
+
+  member_variables members;
+
 };
 
 // --------------------------------------------------------------------------
-struct test3 : public persistent::basic_struct<std::vector<test_int64>> {
-  typedef persistent::basic_struct<std::vector<test_int64>> super;
+struct test3 : public basic_container {
+private:
+  persistent::vector<test_int64> m_v;
+
+public:
+  typedef member_variables_t<decltype(m_v)> member_variables;
 
   test3 ()
-    : super(v)
-    , v("v")
+    : members(m_v)
+    , m_v("v")
   {}
 
   test3 (const test3& rhs)
     : test3()
   {
-    super::operator=(rhs);
+    members=rhs.members;
   }
 
-  persistent::vector<test_int64> v;
+  member_variables& get_members () {
+    return members;
+  }
+
+  const member_variables& get_members () const {
+    return members;
+  }
+
+  const std::vector<test_int64>& v () const {
+    return m_v();
+  }
+
+  std::vector<test_int64>& v () {
+    return m_v();
+  }
+
+private:
+  member_variables members;
 };
+
+namespace persistent {
+
+  template<>
+  auto get_members<test2> (test2& t) -> test2::member_variables& {
+    return t.members;
+  }
+
+  template<>
+  auto get_members<test2> (const test2& t) -> const test2::member_variables& {
+    return t.members;
+  }
+
+}
 
 // --------------------------------------------------------------------------
 

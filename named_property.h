@@ -51,7 +51,9 @@ namespace persistent {
     using uinteger = named_property<unsigned, name_type>;
     using float32 = named_property<float, name_type>;
     using float64 = named_property<double, name_type>;
+
     using vector = named_property<std::vector<T>, name_type>;
+
     template<std::size_t S>
     using array = named_property<std::array<T, S>, name_type>;
 
@@ -68,6 +70,9 @@ namespace persistent {
     * A name must be given, so no default constructor is allowed.
     */
     named_property () = delete;
+
+    inline named_property (const named_property&) = default;
+    inline named_property (named_property&&) = default;
 
     inline const name_type& name () const {
       return m_name;

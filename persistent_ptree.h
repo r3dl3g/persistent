@@ -111,11 +111,11 @@ namespace persistent {
     };
 
     /// read tuple
-    template<typename ... Properties>
-    struct read_tuple_t<ptree, Properties...> {
-      static void from (ptree& p, std::tuple<type<Properties>&...>& t) {
+    template<typename ... Types>
+    struct read_tuple_t<ptree, Types...> {
+      static void from (ptree& p, std::tuple<type<Types>&...>& t) {
         for (auto& item : p) {
-          read_named<sizeof...(Properties), ptree, Properties...>::property(item.second, item.first, t);
+          read_named<sizeof...(Types), ptree, Types...>::property(item.second, item.first, t);
         }
       }
     };
@@ -123,11 +123,11 @@ namespace persistent {
   } // namespace io
 
   // --------------------------------------------------------------------------
-  template<typename ... Properties>
-  struct ptree_struct : public basic_struct<Properties...> {
-    typedef basic_struct<Properties...> super;
+  template<typename ... Types>
+  struct ptree_struct : public basic_struct<Types...> {
+    typedef basic_struct<Types...> super;
 
-    ptree_struct (type<Properties>&... properties)
+    ptree_struct (type<Types>&... properties)
       : super(properties...)
     {}
 

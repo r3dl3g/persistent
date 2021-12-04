@@ -248,13 +248,13 @@ namespace persistent {
       }
     };
 
-    template<typename ... Properties>
-    struct read_tuple_t<ini_parser, Properties...> {
-      static void from (ini_parser& in, std::tuple<type<Properties>&...>& t) {
+    template<typename ... Types>
+    struct read_tuple_t<ini_parser, Types...> {
+      static void from (ini_parser& in, std::tuple<type<Types>&...>& t) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
           in.path.push(index);
-          read_named<sizeof...(Properties), ini_parser, Properties...>::property(in, index, t);
+          read_named<sizeof...(Types), ini_parser, Types...>::property(in, index, t);
           in.path.pop();
 
         }
