@@ -53,10 +53,7 @@ namespace persistent {
     struct formatter<json_formatter_context> : public formatter<ios_formatter_context> {
 
       static void write_property_init (json_formatter_context& out, const std::string& key) {
-        out.os << '"' << key << "\":";
-        if (out.beautify) {
-          out.os << " ";
-        }
+        out.os << std::quoted(key) << (out.beautify ? ": " : ":");
       }
 
     };
@@ -105,7 +102,7 @@ namespace persistent {
       }
 
       static void read_property_init (json_parser_context& in, std::string& key) {
-        in.is >> std::ws >> util::string::quoted(key);
+        in.is >> std::ws >> std::quoted(key);
         parser<std::istream>::read_char(in.is, ':');
       }
 
@@ -116,7 +113,7 @@ namespace persistent {
         char delim = 0;
         in.is >> std::ws >> delim >> std::ws;
         if ((delim != ',') && (delim != '{') && (delim != '}')) {
-          throw std::runtime_error(ostreamfmt("Expected coma ',' or curly bracket '{' or '}' but got '" << delim << "'!"));
+          throw std::runtime_error(msg_fmt() << "Expected coma ',' or curly bracket '{' or '}' but got '" << delim << "'!");
         }
         if (in.is.good() && (delim == '{') && (in.is.peek() == '}')) {
           in.is >> delim;
@@ -145,7 +142,7 @@ namespace persistent {
         char delim2;
         in.is >> delim2;
         if (delim != delim2) {
-          throw std::runtime_error(ostreamfmt("Expected string delemiter " << delim << " but got " << delim2 << " !"));
+          throw std::runtime_error(msg_fmt() << "Expected string delemiter " << delim << " but got " << delim2 << " !");
         }
       }
     };

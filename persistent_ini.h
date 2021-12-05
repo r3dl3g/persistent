@@ -22,6 +22,7 @@
 //
 // Common includes
 //
+#include <limits>
 
 // --------------------------------------------------------------------------
 //
@@ -54,8 +55,20 @@ namespace persistent {
         return os;
       }
 
-      inline void set (const std::string& elements) {
-        path = util::string::split<'.'>(elements);
+      void read_key (std::istream& is) {
+        path.clear();
+        char next = 0;
+        while (is.good() && (next != '=')) {
+          next = is.get();
+          std::ostringstream part;
+          while (is.good() && (next != '.') && (next != '=')) {
+            part.put(next);
+            next = is.get();
+          }
+          std::string key = part.str();
+          key.erase(key.find_last_not_of(" \t\n\r") + 1);
+          path.push_back(key);
+        }
       }
 
       inline bool match (const ini_path& rhs) const {
@@ -143,7 +156,7 @@ namespace persistent {
       }
 
       static void write_list_element_init (ini_formatter_context& out, int num) {
-        out.path.push(ostreamfmt(num));
+        out.path.push(std::to_string(num));
       }
 
       static void write_list_element_finish (ini_formatter_context& out) {
@@ -275,11 +288,7 @@ namespace persistent {
       ini_parser_context in(is);
       is >> std::ws;
       while (is.good()) {
-        std::string key;
-        is >> util::string::name(key);
-        in.key.set(key);
-        is >> std::ws;
-        is.ignore(std::numeric_limits<std::streamsize>::max(), '=');
+        in.key.read_key(is);
         is >> std::ws;
         read(in, t);
         is >> std::ws;

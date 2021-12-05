@@ -45,7 +45,7 @@ struct test2 : public basic_container {
 
   typedef member_variables_t<decltype(i1), decltype(t1), decltype(i2)> member_variables;
 
-  member_variables members;
+    member_variables members;
 
 };
 

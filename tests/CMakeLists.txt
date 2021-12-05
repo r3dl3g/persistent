@@ -25,6 +25,7 @@ set(tests
     json_test
     xml_test
     ini_test
+    example_test
 )
 
 IF(CMAKE_CXX_COMPILER_ID STREQUAL GNU)

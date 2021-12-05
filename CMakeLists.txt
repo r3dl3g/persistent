@@ -20,9 +20,7 @@ if(NOT TARGET persistent)
   set (PERSISTENT_VERSION_PATCH 2)
   set (PERSISTENT_VERSION "${PERSISTENT_VERSION_MAJOR}.${PERSISTENT_VERSION_MINOR}.${PERSISTENT_VERSION_PATCH}")
 
-  add_subdirectory(../util util)
-
-  set (PERSISTENT_LIBRARIES persistent::persistent ${UTIL_LIBRARIES})
+  set (PERSISTENT_LIBRARIES persistent::persistent)
 
   if (PERSISTENT_CXX_STANDARD STREQUAL "OFF")
     set (PERSISTENT_CXX_STANDARD 17)
@@ -32,7 +30,6 @@ if(NOT TARGET persistent)
       ${CMAKE_CURRENT_SOURCE_DIR}/..
       ${CMAKE_CURRENT_BINARY_DIR}
       ${PROJECT_BINARY_DIR}
-      ${UTIL_INCLUDE_DIRS}
   )
 
   if (APPLE)
@@ -55,13 +52,14 @@ if(NOT TARGET persistent)
   )
 
   set(INCLUDE_FILES
-    basic_struct.h
+    property.h
     named_property.h
     persistent.h
+    basic_struct.h
+    persistent_io.h
     persistent_ios.h
     persistent_json.h
     persistent_ptree.h
-    property.h
   )
 
   add_library(persistent INTERFACE)

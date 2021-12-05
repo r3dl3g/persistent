@@ -137,24 +137,14 @@ namespace persistent {
 
       const std::string& next () {
         is >> std::ws;
-        std::ostringstream str;
-        util::string::copy_until(std::istreambuf_iterator<char>(is),
-                                 std::istreambuf_iterator<char>(),
-                                 std::ostreambuf_iterator<char>(str),
-                                 [] (char c) {
-          return (c != '>');
-        });
-        char next = is.peek();
-        if (next != '>') {
-          throw std::runtime_error(ostreamfmt("Expected '>' but got '" << next << "'!"));
-        }
-        is >> next;
-        return token = str.str() + next;
+        std::getline(is, token, '>');
+        token += '>';
+        return token;
       }
 
       void check_token (const std::string& expected) {
         if (next_token() != expected) {
-          throw std::runtime_error(ostreamfmt("Expected '" << expected << "' but got '" << token << "'!"));
+          throw std::runtime_error(msg_fmt() << "Expected '" << expected << "' but got '" << token << "'!");
         }
         clear_token();
       }
@@ -198,7 +188,7 @@ namespace persistent {
       static void read_property_init (xml_parser_context& in, std::string& key) {
         const std::string& token = in.next_token();
         if ((token.size() < 3) || (token.front() != '<') || (token.back() != '>')) {
-          throw std::runtime_error(ostreamfmt("Expected '<xyz>' but got '" << token << "'!"));
+          throw std::runtime_error(msg_fmt() << "Expected '<xyz>' but got '" << token << "'!");
         }
         key = token.substr(1, token.size() - 2);
         in.clear_token();
@@ -210,7 +200,7 @@ namespace persistent {
 
       static bool read_next_struct_element (xml_parser_context& in, std::string& key) {
         const std::string& token = in.next_token();
-        if (in.is.good() && !util::string::starts_with(token, "</") &&
+        if (in.is.good() && (token.compare(0, 2, "</") != 0) &&
             (token.size() > 2) && (token.front() == '<') && (token.back() == '>')) {
           key = token.substr(1, token.size() - 2);
           in.clear_token();
