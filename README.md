@@ -4,9 +4,10 @@ A header only library to persist structures.
 
 ## Motivation
 
-In other languages like java, you can easily persist structs or classes by using the reflection of that language.
-In C++ there is no such machanismn, but with templates, there is a very powefull mechanismn to retrieve
-similar comfort with the addition to have an high optimized code specialized for your struct.
+In other languages like java, you can easily persist structs or classes by using
+the reflection of that language. In C++ there is no such machanismn, but with
+templates, there is a very powefull mechanismn to retrieve similar comfort with
+the addition to have an high optimized code specialized for your struct.
 
 ## Expected usage:
 
@@ -90,16 +91,25 @@ And, of course, we expect to read it back
 
 ## Implementation
 
-Since c++ has no build in mechanismn to get reflection information about the members of a struct or class,
-this is done by a tuple that hold just the information to the defined members of a struct.
-Additional the members get a name information so they can be stored in a name/key based sink.
-For that, some changes are necessary to the basic struct.
+Since c++ has no build in mechanismn to get reflection information about the
+members of a struct or class, this is done by a tuple that hold just the
+information to the defined members of a struct.
+Additional the members get a name information so they can be stored in a
+name/key based sink. For that, some changes are necessary to the basic struct.
 
 1. The struct itself must be recognized as a persistent struct.
-2. The members have to be a type that holds the value itself with a get/Set interface and the name of the member.
+2. The members have to be a type that holds the value itself with a get/Set
+   interface and the name of the member.
 3. A tuple that hold the information about the members.
 
-# Example
+# Usage
+
+## Include it to your code
+
+Since it's a header only library you can just copy the whole directory to your
+project and include it. For convenience there is also a cmake project, that can
+ be included to your 
+cmake file.
 
 ## Define a persistent struct
 
