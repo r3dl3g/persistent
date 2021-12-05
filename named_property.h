@@ -33,7 +33,7 @@ namespace persistent {
     typedef typename super::value_type value_type;
     typedef N name_type;
 
-    using string = named_property<std::string, name_type>;
+    using text = named_property<std::string, name_type>;
     using boolean = named_property<bool, name_type>;
     using int8 = named_property<int8_t, name_type>;
     using int16 = named_property<int16_t, name_type>;
@@ -52,10 +52,10 @@ namespace persistent {
     using float32 = named_property<float, name_type>;
     using float64 = named_property<double, name_type>;
 
-    using vector = named_property<std::vector<T>, name_type>;
+    using list = named_property<std::vector<T>, name_type>;
 
     template<std::size_t S>
-    using array = named_property<std::array<T, S>, name_type>;
+    using fix_list = named_property<std::array<T, S>, name_type>;
 
     /**
     * Constructor with name assignment.

@@ -31,7 +31,7 @@ void test_read_empty () {
 // --------------------------------------------------------------------------
 void test_read_array () {
 
-  persistent::array<int64_t, 5> a("a");
+  persistent::fix_list<int64_t, 5> a("a");
   std::istringstream is(build_xml("<a><ol><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li></ol></a>"));
   persistent::io::read_xml(is, a);
 
@@ -41,7 +41,7 @@ void test_read_array () {
 // --------------------------------------------------------------------------
 void test_read_vector () {
 
-  persistent::vector<int64_t> v("v");
+  persistent::list<int64_t> v("v");
   std::istringstream is(build_xml("<v><ol><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li></ol></v>"));
   persistent::io::read_xml(is, v);
 
@@ -188,7 +188,7 @@ void test_write_4 () {
 // --------------------------------------------------------------------------
 void test_write_array () {
 
-  persistent::array<int64_t, 5> a("a", {1, 2, 3, 4, 5});
+  persistent::fix_list<int64_t, 5> a("a", {1, 2, 3, 4, 5});
   std::ostringstream os;
   persistent::io::write_xml(os, a, false);
 
@@ -198,7 +198,7 @@ void test_write_array () {
 // --------------------------------------------------------------------------
 void test_write_vector () {
 
-  persistent::vector<int64_t> v("v", {1, 2, 3, 4, 5});
+  persistent::list<int64_t> v("v", {1, 2, 3, 4, 5});
   std::ostringstream os;
   persistent::io::write_xml(os, v, false);
   auto expected = build_xml("<v><ol><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li></ol></v>");

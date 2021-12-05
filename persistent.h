@@ -46,7 +46,6 @@ namespace persistent {
   // item declarations
   //
   using text = prop<std::string>;
-  using string = prop<std::string>;
   using boolean = prop<bool>;
   using int8 = prop<int8_t>;
   using int16 = prop<int16_t>;
@@ -70,14 +69,14 @@ namespace persistent {
   // List of persistent values with same name
   //
   template<typename T>
-  using vector = typename prop<T>::vector;
+  using list = typename prop<T>::list;
 
   // --------------------------------------------------------------------------
   //
   // List of fix count of persistent values with same name
   //
   template<typename T, std::size_t S>
-  using array = typename prop<T>::array<S>;
+  using fix_list = typename prop<T>::fix_list<S>;
 
   // --------------------------------------------------------------------------
   //

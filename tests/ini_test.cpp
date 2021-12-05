@@ -20,7 +20,7 @@ void test_read_empty () {
 // --------------------------------------------------------------------------
 void test_read_array () {
 
-  persistent::array<int64_t, 5> a("a");
+  persistent::fix_list<int64_t, 5> a("a");
   std::istringstream is("a.0=1\n"
                         "a.1=2\n"
                         "a.2=3\n"
@@ -34,7 +34,7 @@ void test_read_array () {
 // --------------------------------------------------------------------------
 void test_read_vector () {
 
-  persistent::vector<int64_t> v("v");
+  persistent::list<int64_t> v("v");
   std::istringstream is("v.0=1\n"
                         "v.1=2\n"
                         "v.2=3\n"
@@ -196,7 +196,7 @@ void test_write_4 () {
 // --------------------------------------------------------------------------
 void test_write_array () {
 
-  persistent::array<int64_t, 5> a("a", {1, 2, 3, 4, 5});
+  persistent::fix_list<int64_t, 5> a("a", {1, 2, 3, 4, 5});
   std::ostringstream os;
   persistent::io::write_ini(os, a);
   EXPECT_EQUAL(os.str(), "a.0=1\n"
@@ -208,7 +208,7 @@ void test_write_array () {
 // --------------------------------------------------------------------------
 void test_write_vector () {
 
-  persistent::vector<int64_t> v("v", {1, 2, 3, 4, 5});
+  persistent::list<int64_t> v("v", {1, 2, 3, 4, 5});
   std::ostringstream os;
   persistent::io::write_ini(os, v);
   EXPECT_EQUAL(os.str(), "v.0=1\n"

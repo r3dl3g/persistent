@@ -44,7 +44,7 @@ namespace persistent {
   public:
     typedef T value_type;
 
-    using string = property<std::string>;
+    using text = property<std::string>;
     using boolean = property<bool>;
     using int8 = property<int8_t>;
     using int16 = property<int16_t>;
@@ -63,10 +63,10 @@ namespace persistent {
     using float32 = property<float>;
     using float64 = property<double>;
 
-    using vector = property<std::vector<T>>;
+    using list = property<std::vector<T>>;
 
     template<std::size_t S>
-    using array = property<std::array<T, S>>;
+    using fix_list = property<std::array<T, S>>;
 
     /**
     * Default constructor with optional default value.
