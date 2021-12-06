@@ -62,14 +62,14 @@ namespace persistent {
   // List of persistent values with same name
   //
   template<typename T>
-  using list = typename prop<T>::list;
+  using list = prop<std::vector<T>>;
 
   // --------------------------------------------------------------------------
   //
   // List of fix count of persistent values with same name
   //
   template<typename T, std::size_t S>
-  using fix_list = typename prop<T>::fix_list<S>;
+  using fix_list = prop<std::array<T, S>>;
 
   // --------------------------------------------------------------------------
   //
