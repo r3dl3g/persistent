@@ -4,10 +4,10 @@ A header only library to persist c++ structures.
 
 ## Motivation
 
-In other languages like java, you can easily persist structs or classes by using
-the reflection of that language. In C++ there is no such machanismn, but with
-templates, there is a very powefull mechanismn to retrieve similar comfort with
-the addition to have an high optimized code specialized for your struct.
+In other languages, like java, you can easily persist structs or classes by using
+the reflection of that language. In C++ there is no such mechanism, but with
+templates, there is a very powefull mechanism to retrieve similar comfort with
+the addition to have high optimized code specialized for your struct.
 
 ## Expected usage:
 
