@@ -23,6 +23,7 @@
 // Common includes
 //
 #include <limits>
+#include <algorithm>
 
 // --------------------------------------------------------------------------
 //
@@ -37,6 +38,13 @@
 
 
 namespace persistent {
+
+  class full_line : public std::string {
+  public:
+    inline full_line (const std::string& value = {})
+      : std::string(value)
+    {}
+  };
 
   namespace io {
 
@@ -58,6 +66,7 @@ namespace persistent {
       void read_key (std::istream& is) {
         path.clear();
         char next = 0;
+        is >> std::ws;
         while (is.good() && (next != '=')) {
           next = is.get();
           std::ostringstream part;
@@ -92,12 +101,13 @@ namespace persistent {
         const it ke = key.path.end();
         const it pe = path.end();
         it p = path.begin();
-        for (it k = key.path.begin(); (k < ke) && (p < pe); k++, p++) {
+        it k = key.path.begin();
+        for (; (k < ke) && (p < pe); k++, p++) {
           if (*k != *p) {
             return false;
           }
         }
-        return p == pe;
+        return (p == pe) && (k != ke);
       }
 
       inline void push (const std::string& element) {
@@ -202,6 +212,10 @@ namespace persistent {
         return path == key;
       }
 
+      void skip_to_eol () {
+        is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+      }
+
     };
 
     template<>
@@ -225,74 +239,119 @@ namespace persistent {
 
     template<typename T>
     struct read_property_t<ini_parser_context, T> {
-      static void from (ini_parser_context& in, prop<T>& t) {
+      static bool from (ini_parser_context& in, prop<T>& t) {
         in.path.push(t.name());
-        read_any(in, t());
+        const bool found = read_any(in, t());
         in.path.pop();
+        return found;
       }
     };
 
     template<typename T>
     struct read_vector_t<ini_parser_context, T> {
-      static void from (ini_parser_context& in, std::vector<T>& v) {
+      static bool from (ini_parser_context& in, std::vector<T>& v) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
-          in.path.push(index);
-          const int idx = std::stoi(index);
-          if (v.size() < idx + 1) {
-            v.resize(idx + 1);
+          if (std::all_of(index.begin(), index.end(), ::isdigit)) {
+            in.path.push(index);
+            const int idx = std::stoi(index);
+            if (v.size() < idx + 1) {
+              v.resize(idx + 1);
+            }
+            const bool found = read_any(in, v.at(idx));
+            in.path.pop();
+            return found;
           }
-          read_any(in, v.at(idx));
-          in.path.pop();
         }
+        return false;
       }
     };
 
     template<typename T, std::size_t S>
     struct read_array_t<ini_parser_context, T, S> {
-      static void from (ini_parser_context& in, std::array<T, S>& a) {
+      static bool from (ini_parser_context& in, std::array<T, S>& a) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
-          in.path.push(index);
-          const int idx = std::stoi(index);
-          read_any(in, a.at(idx));
-          in.path.pop();
+          if (std::all_of(index.begin(), index.end(), ::isdigit)) {
+            in.path.push(index);
+            const int idx = std::stoi(index);
+            const bool found = read_any(in, a.at(idx));
+            in.path.pop();
+            return found;
+          }
         }
+        return false;
       }
     };
 
     template<typename ... Types>
     struct read_tuple_t<ini_parser_context, Types...> {
-      static void from (ini_parser_context& in, std::tuple<prop<Types>&...>& t) {
+      static bool from (ini_parser_context& in, std::tuple<prop<Types>&...>& t) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
           in.path.push(index);
-          read_named<sizeof...(Types), ini_parser_context, Types...>::property(in, index, t);
+          const bool found = read_named<sizeof...(Types), ini_parser_context, Types...>::property(in, index, t);
           in.path.pop();
-
+          return found;
         }
+        return false;
       }
     };
 
     template<typename T>
     struct read_value_t<ini_parser_context, T> {
-      static void from (ini_parser_context& in, T& t) {
+      static bool from (ini_parser_context& in, T& t) {
         if (in.match()) {
-          read_value(in.is, t);
+          in.is >> std::ws;
+          return read_value(in.is, t);
         }
+        return false;
+      }
+    };
+
+    template<>
+    struct read_value_t<ini_parser_context, full_line> {
+      static bool from (ini_parser_context& in, full_line& t) {
+        if (in.match()) {
+          char next = in.is.peek();
+          if ((next != '\n') && (next != '\r')) {
+            std::getline(in.is, t);
+          }
+          return true;
+        }
+        return false;
       }
     };
 
     template<typename T>
-    void read_ini (std::istream& is, T& t) {
+    bool read_ini (std::istream& is, T& t, const std::string& filename = {}) {
       ini_parser_context in(is);
       is >> std::ws;
+      bool found = false;
+      int line_no = 1;
       while (is.good()) {
+        if (is.peek() == '#') {
+          std::string comment;
+          std::getline(is, comment);
+        }
         in.key.read_key(is);
+        if (!read(in, t)) {
+          // nothing read -> unknown key
+         std::cerr << "Key '";
+         in.key.print(std::cerr);
+         std::cerr << "' was not found at line " << line_no;
+         if (!filename.empty()) {
+           std::cerr << " in file '" << filename << "'";
+         }
+         std::cerr << std::endl;
+         in.skip_to_eol();
+        } else {
+          found = true;
+        }
         is >> std::ws;
-        read(in, t);
-        is >> std::ws;
+        ++line_no;
       }
+      return found;
     }
 
 

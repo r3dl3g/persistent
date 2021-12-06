@@ -127,7 +127,7 @@ void test_read_6 () {
 
   EXPECT_EQUAL(t1.i(), 4711);
   EXPECT_EQUAL(t1.j(), 0);
-  EXPECT_TRUE(is.good());
+  EXPECT_FALSE(is.good());
 }
 
 // --------------------------------------------------------------------------
@@ -149,6 +149,22 @@ void test_read_7 () {
   EXPECT_EQUAL(t3.v()[1].j(), 4);
   EXPECT_EQUAL(t3.v()[2].i(), 5);
   EXPECT_EQUAL(t3.v()[2].j(), 6);
+}
+
+// --------------------------------------------------------------------------
+void test_read_8 () {
+
+  test4 t4;
+  std::istringstream is("i=4711\n"
+                        "i.0=1\n"
+                        "i.1=2\n"
+                        "i.2=3\n");
+  persistent::io::read_ini(is, t4);
+
+  EXPECT_EQUAL(t4.i(), 4711);
+  EXPECT_EQUAL(t4.l()[0], 1);
+  EXPECT_EQUAL(t4.l()[1], 2);
+  EXPECT_EQUAL(t4.l()[2], 3);
 }
 
 // --------------------------------------------------------------------------
@@ -194,6 +210,19 @@ void test_write_4 () {
 }
 
 // --------------------------------------------------------------------------
+void test_write_5 () {
+  test4 t4(4711, {1, 2, 3});
+  std::ostringstream os;
+  persistent::io::write_ini(os, t4);
+
+  EXPECT_EQUAL(os.str(), "i=4711\n"
+                         "i.0=1\n"
+                         "i.1=2\n"
+                         "i.2=3\n"
+               );
+}
+
+// --------------------------------------------------------------------------
 void test_write_array () {
 
   persistent::fix_list<int64_t, 5> a("a", {1, 2, 3, 4, 5});
@@ -220,7 +249,7 @@ void test_write_vector () {
 
 // --------------------------------------------------------------------------
 void test_main (const testing::start_params& params) {
-  testing::log_info("Running ios_test");
+  testing::log_info("Running " __FILE__);
 
   run_test(test_write_array);
   run_test(test_write_vector);
@@ -228,6 +257,7 @@ void test_main (const testing::start_params& params) {
   run_test(test_write_2);
   run_test(test_write_3);
   run_test(test_write_4);
+  run_test(test_write_5);
 
   run_test(test_read_empty);
   run_test(test_read_1);
@@ -239,6 +269,7 @@ void test_main (const testing::start_params& params) {
   run_test(test_read_5);
   run_test(test_read_6);
   run_test(test_read_7);
+  run_test(test_read_8);
 
 }
 

@@ -98,6 +98,10 @@ namespace persistent {
       return m_value;
     }
 
+    inline operator value_type() const {
+      return m_value;
+    }
+
     /// setter
     inline value_type& operator() () {
       return m_value;
@@ -108,6 +112,10 @@ namespace persistent {
     }
 
     inline void set (const value_type& v) {
+      m_value = v;
+    }
+
+    inline void operator= (const value_type& v) {
       m_value = v;
     }
 

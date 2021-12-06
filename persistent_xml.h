@@ -217,18 +217,19 @@ namespace persistent {
 
     template<typename T>
     struct read_value_t<xml_parser_context, T> {
-      static void from (xml_parser_context& in, T& t) {
-        read_value(in.is, t);
+      static bool from (xml_parser_context& in, T& t) {
+        return read_value(in.is, t);
       }
     };
 
     template<typename T>
-    void read_xml (std::istream& is, T& t) {
+    bool read_xml (std::istream& is, T& t) {
       xml_parser_context in(is);
       in.check_token(xml::s_header);
       in.check_token(xml::s_body);
-      read(in, t);
+      const bool found = read(in, t);
       in.check_token(xml::s_nbody);
+      return found;
     }
 
   } // namespace io

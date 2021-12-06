@@ -82,41 +82,46 @@ namespace persistent {
     /// read value
     template<typename T>
     struct read_value_t<ptree, T> {
-      static void from (ptree& p, T& t) {
+      static bool from (ptree& p, T& t) {
         t = p.get_value<T>(T());
+        return true;
       }
     };
 
     /// read vector
     template<typename T>
     struct read_vector_t<ptree, T> {
-      static void from (ptree& p, std::vector<T>& v) {
+      static bool from (ptree& p, std::vector<T>& v) {
         int i = 0;
         v.resize(p.size());
         for (auto& item : p) {
           read_any(item.second, v[i++]);
         }
+        return true;
       }
     };
 
     /// read array
     template<typename T, size_t S>
     struct read_array_t<ptree, T, S> {
-      static void from (ptree& p, std::array<T, S>& a) {
+      static bool from (ptree& p, std::array<T, S>& a) {
         int i = 0;
         for (auto& item : p) {
           read_any(item.second, a[i++]);
         }
+        return true;
       }
     };
 
     /// read tuple
     template<typename ... Types>
     struct read_tuple_t<ptree, Types...> {
-      static void from (ptree& p, std::tuple<prop<Types>&...>& t) {
+      static bool from (ptree& p, std::tuple<prop<Types>&...>& t) {
+        bool found = true;
         for (auto& item : p) {
-          read_named<sizeof...(Types), ptree, Types...>::property(item.second, item.first, t);
+          found |= read_named<sizeof...(Types), ptree, Types...>::property(item.second, item.first, t);
         }
+        return found;
       }
     };
 
@@ -135,8 +140,8 @@ namespace persistent {
       io::write(pt, *this);
     }
 
-    void read (io::ptree& pt) {
-      io::read(pt, *this);
+    bool read (io::ptree& pt) {
+      return io::read(pt, *this);
     }
 
   };

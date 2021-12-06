@@ -284,12 +284,12 @@ namespace persistent {
     /// read value
     template<typename Source, typename T>
     struct read_value_t {
-      static void from (Source& in, T& t);
+      static bool from (Source& in, T& t);
     };
 
     template<typename Source, typename T>
-    inline void read_value (Source& in, T& t) {
-      read_value_t<Source, T>::from(in, t);
+    inline bool read_value (Source& in, T& t) {
+      return read_value_t<Source, T>::from(in, t);
     }
 
     /**
@@ -298,162 +298,169 @@ namespace persistent {
     */
     template<typename Source, typename T, typename Enable = void>
     struct read_any_t {
-      static inline void from (Source& in, T& t) {
-        read_value(in, t);
+      static inline bool from (Source& in, T& t) {
+        return read_value(in, t);
       }
     };
 
     template<typename Source, typename T>
-    inline void read_any (Source& in, T& t) {
-      read_any_t<Source, T>::from(in, t);
+    inline bool read_any (Source& in, T& t) {
+      return read_any_t<Source, T>::from(in, t);
     }
 
     /// read property
     template<typename Source, typename T>
     struct read_property_t {
-      static void from (Source& in, prop<T>& t) {
+      static bool from (Source& in, prop<T>& t) {
         std::string name;
         parser<Source>::read_property_init(in, name);
-        read_any(in, t());
+        const bool found = read_any(in, t());
         parser<Source>::read_property_finish(in, name);
+        return found;
       }
     };
 
     template<typename Source, typename T>
-    inline void read_property (Source& in, prop<T>& t) {
-      read_property_t<Source, T>::from(in, t);
+    inline bool read_property (Source& in, prop<T>& t) {
+      return read_property_t<Source, T>::from(in, t);
     }
 
     /// read vector
     template<typename Source, typename T>
     struct read_vector_t {
-      static void from (Source& in, std::vector<T>& v) {
+      static bool from (Source& in, std::vector<T>& v) {
         parser<Source>::read_list_start(in);
         v.clear();
         int num = 0;
+        bool found = false;
         while (parser<Source>::read_list_element_init(in, num++)) {
           T t;
-          read_any(in, t);
+          found |= read_any(in, t);
           v.push_back(t);
           parser<Source>::read_list_element_finish(in);
         }
         parser<Source>::read_list_end(in);
+        return found;
       }
     };
 
     template<typename Source, typename T>
-    inline void read_vector (Source& in, std::vector<T>& t) {
-      read_vector_t<Source, T>::from(in, t);
+    inline bool read_vector (Source& in, std::vector<T>& t) {
+      return read_vector_t<Source, T>::from(in, t);
     }
 
     /// read array
     template<typename Source, typename T, std::size_t S>
     struct read_array_t {
-      static void from (Source& in, std::array<T, S>& a) {
+      static bool from (Source& in, std::array<T, S>& a) {
         parser<Source>::read_list_start(in);
         int num = 0;
+        bool found = false;
         for (T& e : a) {
           parser<Source>::read_list_element_init(in, num++);
-          read_any(in, e);
+          found |= read_any(in, e);
           parser<Source>::read_list_element_finish(in);
         }
         parser<Source>::read_list_end(in);
+        return found;
       }
     };
 
     template<typename Source, typename T, std::size_t S>
-    inline void read_array (Source& in, std::array<T, S>& t) {
-      read_array_t<Source, T, S>::from(in, t);
+    inline bool read_array (Source& in, std::array<T, S>& t) {
+      return read_array_t<Source, T, S>::from(in, t);
     }
 
     /// read element with name of a tuple
     template<std::size_t I, typename Source, typename ... Types>
     struct read_named {
-      static void property (Source& in, const std::string& name, std::tuple<prop<Types>&...>& t) {
+      static bool property (Source& in, const std::string& name, std::tuple<prop<Types>&...>& t) {
+        bool found = read_named<I - 1, Source, Types...>::property(in, name, t);
         auto& f = std::get<I - 1>(t);
         if (name == f.name()) {
-          read_any(in, f());
-        } else {
-          read_named<I - 1, Source, Types...>::property(in, name, t);
+          found |= read_any(in, f());
         }
+        return found;
       }
     };
 
     /// Stop recoursion at element 0
     template<typename Source, typename ... Types>
     struct read_named<0, Source, Types...> {
-      static inline void property (Source&, const std::string& name, std::tuple<prop<Types>& ...>&) {
-        throw std::runtime_error(msg_fmt() << "Could not find property with name '" << name << "'!");
+      static inline bool property (Source&, const std::string& name, std::tuple<prop<Types>& ...>&) {
+        return false;
       }
     };
 
     /// read tuple
     template<typename Source, typename ... Types>
     struct read_tuple_t {
-      static void from (Source& in, std::tuple<prop<Types>&...>& t) {
+      static bool from (Source& in, std::tuple<prop<Types>&...>& t) {
         std::string name;
+        bool found = false;
         while (parser<Source>::read_next_struct_element(in, name)) {
-          read_named<sizeof...(Types), Source, Types...>::property(in, name, t);
+          found |= read_named<sizeof...(Types), Source, Types...>::property(in, name, t);
           parser<Source>::read_struct_element_finish(in, name);
           name.clear();
         }
+        return found;
       }
     };
 
     template<typename Source, typename ... Types>
-    inline void read_tuple (Source& in, std::tuple<prop<Types>&...>& t) {
-      read_tuple_t<Source, Types...>::from(in, t);
+    inline bool read_tuple (Source& in, std::tuple<prop<Types>&...>& t) {
+      return read_tuple_t<Source, Types...>::from(in, t);
     }
 
     /// read basic_struct
     template<typename Source, typename ... Types>
     struct read_struct_t {
-      static inline void from (Source& in, basic_struct<Types...>& t) {
-        read_tuple(in, persistent::get_members(t));
+      static inline bool from (Source& in, basic_struct<Types...>& t) {
+        return read_tuple(in, persistent::get_members(t));
       }
     };
 
     template<typename Source, typename ... Types>
-    inline void read_struct (Source& in, basic_struct<Types...>& t) {
-      read_struct_t<Source, Types...>::from(in, t);
+    inline bool read_struct (Source& in, basic_struct<Types...>& t) {
+      return read_struct_t<Source, Types...>::from(in, t);
     }
 
     /// detect named property
     template<typename Source, typename T>
     struct read_any_t<Source, prop<T>> {
-      static inline void from (Source& in, prop<T>& t) {
-        read_property(in, t);
+      static inline bool from (Source& in, prop<T>& t) {
+        return read_property(in, t);
       }
     };
 
     /// detect vector
     template<typename Source, typename T>
     struct read_any_t<Source, std::vector<T>> {
-      static inline void from (Source& in, std::vector<T>& t) {
-        read_vector(in, t);
+      static inline bool from (Source& in, std::vector<T>& t) {
+        return read_vector(in, t);
       }
     };
 
     /// detect array
     template<typename Source, typename T, std::size_t S>
     struct read_any_t<Source, std::array<T, S>> {
-      static inline void from (Source& in, std::array<T, S>& t) {
-        read_array(in, t);
+      static inline bool from (Source& in, std::array<T, S>& t) {
+        return read_array(in, t);
       }
     };
 
     /// detect struct
     template<typename Source, typename T>
     struct read_any_t<Source, T, typename std::enable_if<std::is_base_of<basic_container, T>::value>::type> {
-      static inline void from (Source& in, T& t) {
-        read_tuple(in, persistent::get_members(t));
+      static inline bool from (Source& in, T& t) {
+        return read_tuple(in, persistent::get_members(t));
       }
     };
 
     /// convenience helper
     template<typename Source, typename T>
-    void inline read (Source& in, T& t) {
-      read_any(in, t);
+    inline bool read (Source& in, T& t) {
+      return read_any(in, t);
     }
 
   } // namespace io

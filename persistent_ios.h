@@ -297,39 +297,43 @@ namespace persistent {
 
     template<typename T>
     struct read_value_t<std::istream, T> {
-      static void from (std::istream& is, T& t) {
+      static bool from (std::istream& is, T& t) {
         is >> t;
+        return true;
       }
     };
 
     template<>
     struct read_value_t<std::istream, std::string> {
-      static void from (std::istream& is, std::string& t) {
+      static bool from (std::istream& is, std::string& t) {
         is >> std::ws >> std::quoted(t);
+        return true;
       }
     };
 
     template<>
     struct read_value_t<std::istream, unsigned char> {
-      static void from (std::istream& is, unsigned char& t) {
+      static bool from (std::istream& is, unsigned char& t) {
         int i;
         is >> std::ws >> i;
         t = static_cast<unsigned char>(i);
+        return true;
       }
     };
 
     template<>
     struct read_value_t<std::istream, char> {
-      static void from (std::istream& is, char& t) {
+      static bool from (std::istream& is, char& t) {
         int i;
         is >> std::ws >> i;
         t = static_cast<char>(i);
+        return true;
       }
     };
 
     template<typename T>
-    void read_stream (std::istream& is, T& t) {
-      read(is, t);
+    inline bool read_stream (std::istream& is, T& t) {
+      return read(is, t);
     }
 
 

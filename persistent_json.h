@@ -131,7 +131,7 @@ namespace persistent {
 
     template<typename T>
     struct read_value_t<json_parser_context, T> {
-      static void from (json_parser_context& in, T& t) {
+      static bool from (json_parser_context& in, T& t) {
         in.is >> std::ws;
         if ((in.is.peek() != '"') && (in.is.peek() != '\'')) {
           throw std::runtime_error("Expected string delemiter ' or \" !");
@@ -144,20 +144,21 @@ namespace persistent {
         if (delim != delim2) {
           throw std::runtime_error(msg_fmt() << "Expected string delemiter " << delim << " but got " << delim2 << " !");
         }
+        return true;
       }
     };
 
     template<>
     struct read_value_t<json_parser_context, std::string> {
-      static void from (json_parser_context& in, std::string& t) {
-        read_value(in.is, t);
+      static bool from (json_parser_context& in, std::string& t) {
+        return read_value(in.is, t);
       }
     };
 
     template<typename T>
-    void read_json (std::istream& is, T& t) {
+    inline bool read_json (std::istream& is, T& t) {
       json_parser_context f(is);
-      read(f, t);
+      return read(f, t);
     }
 
 

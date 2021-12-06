@@ -88,6 +88,26 @@ private:
   member_variables members;
 };
 
+// --------------------------------------------------------------------------
+struct test4 : public basic_struct<int64, list<int>> {
+  typedef basic_struct<int64, list<int>> super;
+
+  test4 (int64_t i_ = {}, const std::vector<int>& l_ = {})
+    : super(i, l)
+    , i("i", i_)
+    , l("i", l_)
+  {}
+
+  test4 (const test4& rhs)
+    : test4 () {
+    operator=(rhs);
+  }
+
+  int64 i;
+  list<int> l;
+};
+
+
 namespace persistent {
 
   template<>

@@ -191,7 +191,7 @@ void test_write_vector () {
 
 // --------------------------------------------------------------------------
 void test_main (const testing::start_params& params) {
-  testing::log_info("Running ios_test");
+  testing::log_info("Running " __FILE__);
   run_test(test_read_empty);
   run_test(test_read_array);
   run_test(test_read_vector);
