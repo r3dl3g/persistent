@@ -1,3 +1,18 @@
+/**
+* @copyright (c) 2015-2021 Ing. Buero Rothfuss
+*                          Riedlinger Str. 8
+*                          70327 Stuttgart
+*                          Germany
+*                          http://www.rothfuss-web.de
+*
+* @author    <a href="mailto:armin@rothfuss-web.de">Armin Rothfuss</a>
+*
+* Project    persistent lib
+*
+* @brief     C++ struct persistence test
+*
+* @license   MIT license. See accompanying file LICENSE.
+*/
 
 #include "persistent/persistent_xml.h"
 #include <testing/testing.h>

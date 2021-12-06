@@ -7,13 +7,11 @@
 *
 * @author    <a href="mailto:armin@rothfuss-web.de">Armin Rothfuss</a>
 *
-* Project    standard lib
+* Project    persistent lib
 *
-* Customer   -
+* @brief     C++ struct persistence
 *
-* @brief     Container for persistent.
-*
-* @file
+* @license   MIT license. See accompanying file LICENSE.
 */
 
 #pragma once
@@ -23,11 +21,6 @@
 // Common includes
 //
 #include <iostream>
-
-// --------------------------------------------------------------------------
-//
-// Library includes
-//
 
 // --------------------------------------------------------------------------
 //

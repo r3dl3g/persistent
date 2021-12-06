@@ -1,6 +1,6 @@
-# Struct persistence
+# C++ struct persistence
 
-A header only library to persist structures.
+A header only library to persist c++ structures.
 
 ## Motivation
 
