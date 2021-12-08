@@ -309,6 +309,9 @@ namespace persistent {
           char next = in.is.peek();
           if ((next != '\n') && (next != '\r')) {
             std::getline(in.is, t);
+            t.erase(std::find_if_not(t.rbegin(), t.rend(), [] (char c) {
+              return (c == '\r') || (c == '\n');
+            }).base(), t.end());
           }
           return true;
         }
