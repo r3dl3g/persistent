@@ -17,7 +17,7 @@ if(NOT TARGET persistent)
 
   set (PERSISTENT_VERSION_MAJOR 1)
   set (PERSISTENT_VERSION_MINOR 0)
-  set (PERSISTENT_VERSION_PATCH 2)
+  set (PERSISTENT_VERSION_PATCH 3)
   set (PERSISTENT_VERSION "${PERSISTENT_VERSION_MAJOR}.${PERSISTENT_VERSION_MINOR}.${PERSISTENT_VERSION_PATCH}")
 
   set (PERSISTENT_LIBRARIES persistent::persistent)
@@ -48,7 +48,7 @@ if(NOT TARGET persistent)
   # header file to pass version settings to the source code
   configure_file (
       "${PROJECT_SOURCE_DIR}/version.h.in"
-      "${PROJECT_BINARY_DIR}/persistent_version.h"
+      "${PROJECT_BINARY_DIR}/persistent/persistent_version.h"
   )
 
   set(INCLUDE_FILES
@@ -83,49 +83,49 @@ endif()
   # target_sources(persistent INTERFACE "$<BUILD_INTERFACE:${INCLUDE_FILES}>")
 
   if (PERSISTENT_CONFIG_INSTALL)
-    set (INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/persistent)
-    set (LIBRARY_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/persistent)
+    set (PERSISTENT_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR}/persistent)
+    set (PERSISTENT_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR}/cmake/persistent)
 
     target_include_directories(persistent
-                               PUBLIC
-                               "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
-                               "$<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>"
+        INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:${PERSISTENT_INSTALL_INCLUDEDIR}>
     )
 
     write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/persistentConfigVersion.cmake
-                                     VERSION ${PERSISTENT_VERSION}
-                                     COMPATIBILITY SameMajorVersion)
+        VERSION ${PERSISTENT_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
 
     configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
-                                  "${CMAKE_CURRENT_BINARY_DIR}/persistentConfig.cmake"
-                                  INSTALL_DESTINATION ${LIBRARY_INSTALL_DIR}
-                                  PATH_VARS CMAKE_INSTALL_INCLUDEDIR)
+        "${CMAKE_CURRENT_BINARY_DIR}/persistentConfig.cmake"
+        INSTALL_DESTINATION ${PERSISTENT_INSTALL_LIBDIR}
+        PATH_VARS CMAKE_INSTALL_INCLUDEDIR
+    )
 
     install(TARGETS persistent
-            EXPORT persistentTargets
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-            INCLUDES DESTINATION ${INCLUDE_INSTALL_DIR}
+        EXPORT persistentTargets
+        INCLUDES DESTINATION ${PERSISTENT_INSTALL_INCLUDEDIR}
     )
 
     install(FILES ${INCLUDE_FILES}
-            ${PROJECT_BINARY_DIR}/persistent_version.h
-            DESTINATION ${INCLUDE_INSTALL_DIR}
+        ${PROJECT_BINARY_DIR}/persistent/persistent_version.h
+        DESTINATION ${PERSISTENT_INSTALL_INCLUDEDIR}
     )
 
     install(EXPORT persistentTargets
-            FILE persistentTargets.cmake
-            NAMESPACE persistent::
-            DESTINATION ${LIBRARY_INSTALL_DIR}
+        FILE persistentTargets.cmake
+        NAMESPACE persistent::
+        DESTINATION ${PERSISTENT_INSTALL_LIBDIR}
     )
 
     export(TARGETS persistent FILE persistentTargets.cmake)
 
     install(FILES
-            "${CMAKE_CURRENT_BINARY_DIR}/persistentConfig.cmake"
-            "${CMAKE_CURRENT_BINARY_DIR}/persistentConfigVersion.cmake"
-            DESTINATION ${LIBRARY_INSTALL_DIR})
+        "${CMAKE_CURRENT_BINARY_DIR}/persistentConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/persistentConfigVersion.cmake"
+        DESTINATION ${PERSISTENT_INSTALL_LIBDIR}
+    )
 
   endif()
 
