@@ -98,6 +98,13 @@ namespace persistent {
       }
     };
 
+    template<>
+    struct write_value_t<xml_formatter_context, const std::string> {
+      static void to (xml_formatter_context& out, const std::string& t) {
+        out.os << t;
+      }
+    };
+
     template<typename T>
     void write_xml (std::ostream& os, const T& t, bool beautify = true) {
       xml_formatter_context out(os, beautify);
@@ -130,14 +137,17 @@ namespace persistent {
 
       const std::string& next () {
         is >> std::ws;
-        std::getline(is, token, '>');
-        token += '>';
+        token.clear();
+        if (is.peek() == '<') {
+          std::getline(is, token, '>');
+          token += '>';
+        }
         return token;
       }
 
       void check_token (const std::string& expected) {
         if (next_token() != expected) {
-          throw std::runtime_error(msg_fmt() << "Expected '" << expected << "' but got '" << token << "'!");
+          throw std::runtime_error(msg_fmt() << "Expected '" << expected << "' but got '" << token << "'");
         }
         clear_token();
       }
@@ -158,8 +168,12 @@ namespace persistent {
     template<>
     struct parser<xml_parser_context> {
 
-      static void read_list_start (xml_parser_context& in) {
-        in.check_token("<ol>");
+      static bool read_list_start (xml_parser_context& in) {
+        if (in.next_token() == "<ol>") {
+          in.clear_token();
+          return true;
+        }
+        return false;
       }
 
       static bool read_list_element_init (xml_parser_context& in, int) {
@@ -181,7 +195,7 @@ namespace persistent {
       static void read_property_init (xml_parser_context& in, std::string& key) {
         const std::string& token = in.next_token();
         if ((token.size() < 3) || (token.front() != '<') || (token.back() != '>')) {
-          throw std::runtime_error(msg_fmt() << "Expected '<xyz>' but got '" << token << "'!");
+          throw std::runtime_error(msg_fmt() << "Expected '<xyz>' but got '" << token << "'");
         }
         key = token.substr(1, token.size() - 2);
         in.clear_token();
@@ -211,7 +225,29 @@ namespace persistent {
     template<typename T>
     struct read_value_t<xml_parser_context, T> {
       static bool from (xml_parser_context& in, T& t) {
-        return read_value(in.is, t);
+        if (in.next_token().empty()) {
+          return read_value(in.is, t);
+        } else {
+          return false;
+        }
+      }
+    };
+
+    template<>
+    struct read_value_t<xml_parser_context, std::string> {
+      static bool from (xml_parser_context& in, std::string& t) {
+        std::getline(in.is, t, '<');
+        if (in.is.good()) {
+          in.is.putback('<');
+        }
+        return true;
+      }
+    };
+
+    template<>
+    struct read_value_t<xml_parser_context, full_line> {
+      static bool from (xml_parser_context& in, full_line& t) {
+        return read_value_t<xml_parser_context, std::string>::from(in, t);
       }
     };
 

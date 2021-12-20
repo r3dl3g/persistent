@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <memory>
 
 namespace persistent {
 
@@ -65,6 +66,8 @@ namespace persistent {
 
     template<std::size_t S>
     using fix_list = property<std::array<T, S>>;
+
+    using shared = property<std::shared_ptr<T>>;
 
     /**
     * Default constructor with optional default value.

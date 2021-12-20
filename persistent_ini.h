@@ -32,13 +32,6 @@
 
 namespace persistent {
 
-  class full_line : public std::string {
-  public:
-    inline full_line (const std::string& value = {})
-      : std::string(value)
-    {}
-  };
-
   namespace io {
 
     struct ini_path {
@@ -213,7 +206,10 @@ namespace persistent {
 
     template<>
     struct parser<ini_parser_context> {
-      static void read_list_start (ini_parser_context&) {}
+      static bool read_list_start (ini_parser_context&) {
+        return false;
+      }
+
       static bool read_list_element_init (ini_parser_context&, int) {
         return false;
       }

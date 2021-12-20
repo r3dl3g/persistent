@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.19)
 
-project("persistent" CXX)
+project("persistent" LANGUAGES CXX VERSION 1.0.4)
 
 include (GenerateExportHeader)
 include (CMakePackageConfigHelpers)
@@ -10,15 +10,21 @@ if(POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
 endif()
 
-option(PERSISTENT_CONFIG_INSTALL "On to make an installable standalone build, Off to build as part of a project. Default Off" OFF)
-option(PERSISTENT_CXX_STANDARD "C++ standard to overwrite default cmake standard" ${CMAKE_CXX_STANDARD})
+if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET AND
+    NOT DEFINED CMAKE_VISIBILITY_INLINES_HIDDEN)
+  set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+  set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
+endif()
 
 if(NOT TARGET persistent)
 
-  set (PERSISTENT_VERSION_MAJOR 1)
-  set (PERSISTENT_VERSION_MINOR 0)
-  set (PERSISTENT_VERSION_PATCH 3)
-  set (PERSISTENT_VERSION "${PERSISTENT_VERSION_MAJOR}.${PERSISTENT_VERSION_MINOR}.${PERSISTENT_VERSION_PATCH}")
+  set (PERSISTENT_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+  set (PERSISTENT_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+  set (PERSISTENT_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+  set (PERSISTENT_VERSION "${PROJECT_VERSION}")
+
+option(PERSISTENT_CONFIG_INSTALL "On to make an installable standalone build, Off to build as part of a project. Default Off" OFF)
+option(PERSISTENT_CXX_STANDARD "C++ standard to overwrite default cmake standard" ${CMAKE_CXX_STANDARD})
 
   set (PERSISTENT_LIBRARIES persistent::persistent)
 

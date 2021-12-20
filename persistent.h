@@ -73,6 +73,24 @@ namespace persistent {
 
   // --------------------------------------------------------------------------
   //
+  // shared persistent item
+  //
+  template<typename T>
+  using shared = prop<std::shared_ptr<T>>;
+
+  // --------------------------------------------------------------------------
+  //
+  // complete line, till parser specific delemiter
+  //
+  class full_line : public std::string {
+  public:
+    inline full_line (const std::string& value = {})
+      : std::string(value)
+    {}
+  };
+
+  // --------------------------------------------------------------------------
+  //
   // structure to  hold all persistent members of a struct.
   //
   template<typename... Types>

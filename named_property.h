@@ -59,6 +59,8 @@ namespace persistent {
     template<std::size_t S>
     using fix_list = named_property<std::array<T, S>, name_type>;
 
+    using shared = named_property<std::shared_ptr<T>>;
+
     /**
     * Constructor with name assignment.
     * Optional a default value can be given.

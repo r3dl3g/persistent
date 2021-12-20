@@ -227,8 +227,14 @@ namespace persistent {
     //
     template<>
     struct parser<std::istream> {
-      static inline void read_list_start (std::istream& is) {
-        read_char(is, '[');
+      static inline bool read_list_start (std::istream& is) {
+        is >> std::ws;
+        char delim = is.peek();
+        if (delim != '[') {
+          return false;
+        }
+        is >> delim;
+        return true;
       }
 
       static inline bool read_list_element_init (std::istream& is, int) {
@@ -241,7 +247,7 @@ namespace persistent {
         is >> std::ws;
         char delim = is.peek();
         if ((delim != ',') && (delim != ']')) {
-          throw std::runtime_error(msg_fmt() << "Expected coma ',' or array close bracket ']' but got '" << delim << "'!");
+          throw std::runtime_error(msg_fmt() << "Expected coma ',' or array close bracket ']' but got '" << delim << "'");
         }
         if (delim == ',') {
           is >> delim;
@@ -263,7 +269,7 @@ namespace persistent {
         char delim = 0;
         is >> std::ws >> delim >> std::ws;
         if ((delim != ',') && (delim != '{') && (delim != '}')) {
-          throw std::runtime_error(msg_fmt() << "Expected coma ',' or curly bracket '{' or '}' but got '" << delim << "'!");
+          throw std::runtime_error(msg_fmt() << "Expected coma ',' or curly bracket '{' or '}' but got '" << delim << "'");
         }
         if (is.good() && (delim == '{') && (is.peek() == '}')) {
           is >> delim;
@@ -282,7 +288,7 @@ namespace persistent {
         is >> std::ws >> delim;
         if (delim != expected) {
           throw std::runtime_error(msg_fmt() << "Expected character '" << expected
-                                              << "' but got '" << delim << "'!");
+                                              << "' but got '" << delim << "'");
         }
         return delim;
       }

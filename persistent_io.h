@@ -213,6 +213,19 @@ namespace persistent {
       write_struct_t<Target, Types...>::to(out, t);
     }
 
+    /// write shared values
+    template<typename Target, typename T>
+    struct write_shared_t {
+      static void to (Target& out, const std::shared_ptr<T>& t) {
+        write_any_t<Target, T>::to(out, *t.get());
+      }
+    };
+
+    template<typename Target, typename T>
+    void write_shared (Target& out, const std::shared_ptr<T>& t) {
+      write_shared_t<Target, T>::to(out, t);
+    }
+
     /// detect named property
     template<typename Target, typename T>
     struct write_any_t<Target, prop<T>> {
@@ -245,6 +258,14 @@ namespace persistent {
       }
     };
 
+    /// detect shared
+    template<typename Target, typename T>
+    struct write_any_t<Target, std::shared_ptr<T>> {
+      static void to (Target& out, const std::shared_ptr<T>& t) {
+        write_shared(out, t);
+      }
+    };
+
     /// convenience helper
     template<typename Target, typename T>
     void inline write (Target& out, const T& t) {
@@ -262,7 +283,7 @@ namespace persistent {
      */
     template<typename Source>
     struct parser {
-      static void read_list_start (Source&) {}
+      static bool read_list_start (Source&) { return false; }
       static bool read_list_element_init (Source&, int) { return true; }
       static void read_list_element_finish (Source&) {}
       static void read_list_end (Source&) {}
@@ -306,10 +327,14 @@ namespace persistent {
     struct read_property_t {
       static bool from (Source& in, prop<T>& t) {
         std::string name;
-        parser<Source>::read_property_init(in, name);
-        const bool found = read_any(in, t());
-        parser<Source>::read_property_finish(in, name);
-        return found;
+        try {
+          parser<Source>::read_property_init(in, name);
+          const bool found = read_any(in, t());
+          parser<Source>::read_property_finish(in, name);
+          return found;
+        } catch (std::exception& ex) {
+          throw std::runtime_error(msg_fmt() << ex.what() << " for property '" << name << "'");
+        }
       }
     };
 
@@ -322,7 +347,9 @@ namespace persistent {
     template<typename Source, typename T>
     struct read_vector_t {
       static bool from (Source& in, std::vector<T>& v) {
-        parser<Source>::read_list_start(in);
+        if (!parser<Source>::read_list_start(in)) {
+          return false;
+        }
         v.clear();
         int num = 0;
         bool found = false;
@@ -346,7 +373,9 @@ namespace persistent {
     template<typename Source, typename T, std::size_t S>
     struct read_array_t {
       static bool from (Source& in, std::array<T, S>& a) {
-        parser<Source>::read_list_start(in);
+        if (!parser<Source>::read_list_start(in)) {
+          return false;
+        }
         int num = 0;
         bool found = false;
         for (T& e : a) {
@@ -369,9 +398,11 @@ namespace persistent {
     struct read_named {
       static bool property (Source& in, const std::string& name, std::tuple<prop<Types>&...>& t) {
         bool found = read_named<I - 1, Source, Types...>::property(in, name, t);
-        auto& f = std::get<I - 1>(t);
-        if (name == f.name()) {
-          found |= read_any(in, f());
+        if (!found) {
+          auto& f = std::get<I - 1>(t);
+          if (name == f.name()) {
+            found |= read_any(in, f());
+          }
         }
         return found;
       }
@@ -418,6 +449,23 @@ namespace persistent {
       return read_struct_t<Source, Types...>::from(in, t);
     }
 
+    /// read shared
+    template<typename Source, typename T>
+    struct read_shared_t {
+      static bool from (Source& in, std::shared_ptr<T>& v) {
+        if (!v) {
+          v = std::make_shared<T>();
+        }
+        T& t = *v;
+        return read_any(in, t);
+      }
+    };
+
+    template<typename Source, typename T>
+    inline bool read_shared (Source& in, std::shared_ptr<T>& t) {
+      return read_shared_t<Source, T>::from(in, t);
+    }
+
     /// detect named property
     template<typename Source, typename T>
     struct read_any_t<Source, prop<T>> {
@@ -447,6 +495,14 @@ namespace persistent {
     struct read_any_t<Source, T, typename std::enable_if<std::is_base_of<basic_container, T>::value>::type> {
       static inline bool from (Source& in, T& t) {
         return read_tuple(in, persistent::get_members(t));
+      }
+    };
+
+    /// detect shared
+    template<typename Source, typename T>
+    struct read_any_t<Source, std::shared_ptr<T>> {
+      static inline bool from (Source& in, std::shared_ptr<T>& t) {
+        return read_shared(in, t);
       }
     };
 

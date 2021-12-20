@@ -73,8 +73,8 @@ namespace persistent {
 
     template<>
     struct parser<json_parser_context> {
-      static void read_list_start (json_parser_context& in) {
-        parser<std::istream>::read_list_start(in.is);
+      static bool read_list_start (json_parser_context& in) {
+        return parser<std::istream>::read_list_start(in.is);
       }
 
       static bool read_list_element_init (json_parser_context& in, int num) {
@@ -101,7 +101,7 @@ namespace persistent {
         char delim = 0;
         in.is >> std::ws >> delim >> std::ws;
         if ((delim != ',') && (delim != '{') && (delim != '}')) {
-          throw std::runtime_error(msg_fmt() << "Expected coma ',' or curly bracket '{' or '}' but got '" << delim << "'!");
+          throw std::runtime_error(msg_fmt() << "Expected coma ',' or curly bracket '{' or '}' but got '" << delim << "'");
         }
         if (in.is.good() && (delim == '{') && (in.is.peek() == '}')) {
           in.is >> delim;
@@ -122,7 +122,7 @@ namespace persistent {
       static bool from (json_parser_context& in, T& t) {
         in.is >> std::ws;
         if ((in.is.peek() != '"') && (in.is.peek() != '\'')) {
-          throw std::runtime_error("Expected string delemiter ' or \" !");
+          return false;
         }
         char delim;
         in.is >> delim;
@@ -130,7 +130,7 @@ namespace persistent {
         char delim2;
         in.is >> delim2;
         if (delim != delim2) {
-          throw std::runtime_error(msg_fmt() << "Expected string delemiter " << delim << " but got " << delim2 << " !");
+          throw std::runtime_error(msg_fmt() << "Expected string delemiter " << delim << " but got '" << delim2 << "'");
         }
         return true;
       }
@@ -139,7 +139,21 @@ namespace persistent {
     template<>
     struct read_value_t<json_parser_context, std::string> {
       static bool from (json_parser_context& in, std::string& t) {
-        return read_value(in.is, t);
+        in.is >> std::ws;
+        if ((in.is.peek() != '"') && (in.is.peek() != '\'')) {
+          return false;
+        }
+        char delim;
+        in.is >> delim;
+        std::getline(in.is, t, delim);
+        return true;
+      }
+    };
+
+    template<>
+    struct read_value_t<json_parser_context, full_line> {
+      static bool from (json_parser_context& in, full_line& t) {
+        return read_value_t<json_parser_context, std::string>::from(in, t);
       }
     };
 
