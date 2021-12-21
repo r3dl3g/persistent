@@ -350,13 +350,12 @@ namespace persistent {
         if (!parser<Source>::read_list_start(in)) {
           return false;
         }
-        v.clear();
         int num = 0;
         bool found = false;
         while (parser<Source>::read_list_element_init(in, num++)) {
           T t;
           found |= read_any(in, t);
-          v.push_back(t);
+          v.push_back(std::move(t));
           parser<Source>::read_list_element_finish(in);
         }
         parser<Source>::read_list_end(in);
