@@ -160,6 +160,62 @@ void test_read_7 () {
 }
 
 // --------------------------------------------------------------------------
+void test_read_8 () {
+  test5 t;
+  std::istringstream is(build_xml("<i>Text 5</i><i><ol><li>List item 1</li><li>List item 2</li></ol></i>"));
+  persistent::io::read_xml(is, t);
+
+  std::vector<std::string> expected({"List item 1", "List item 2"});
+
+  EXPECT_EQUAL(t.i(), "Text 5");
+  EXPECT_EQUAL(t.l(), expected);
+
+//  EXPECT_FALSE(is.good());
+}
+
+// --------------------------------------------------------------------------
+void test_read_9 () {
+  test6 t;
+  std::istringstream is(build_xml("<i>Text 6</i><i><ol><li>List item 1</li><li>List item 2</li></ol></i>"));
+  persistent::io::read_xml(is, t);
+
+  std::vector<std::string> expected({"List item 1", "List item 2"});
+
+  EXPECT_EQUAL(t.i(), "Text 6");
+  EXPECT_EQUAL(t.l(), expected);
+
+//  EXPECT_FALSE(is.good());
+}
+
+// --------------------------------------------------------------------------
+void test_read_10 () {
+  test5 t;
+  std::istringstream is(build_xml("<i><ol><li>List item 1</li><li>List item 2</li></ol></i><i>Text 7</i>"));
+  persistent::io::read_xml(is, t);
+
+  std::vector<std::string> expected({"List item 1", "List item 2"});
+
+  EXPECT_EQUAL(t.i(), "Text 7");
+  EXPECT_EQUAL(t.l(), expected);
+
+//  EXPECT_FALSE(is.good());
+}
+
+// --------------------------------------------------------------------------
+void test_read_11 () {
+  test6 t;
+  std::istringstream is(build_xml("<i><ol><li>List item 1</li><li>List item 2</li></ol></i><i>Text 8</i>"));
+  persistent::io::read_xml(is, t);
+
+  std::vector<std::string> expected({"List item 1", "List item 2"});
+
+  EXPECT_EQUAL(t.i(), "Text 8");
+  EXPECT_EQUAL(t.l(), expected);
+
+//  EXPECT_FALSE(is.good());
+}
+
+// --------------------------------------------------------------------------
 void test_write_1 () {
   persistent::int64 i("i", 4711);
   std::ostringstream os;
@@ -201,6 +257,26 @@ void test_write_4 () {
 }
 
 // --------------------------------------------------------------------------
+void test_write_5 () {
+  test5 t("Text 5", {"List item 1", "List item 2"});
+  std::ostringstream os;
+  persistent::io::write_xml(os, t, false);
+
+  auto expected = build_xml("<i>Text 5</i><i><ol><li>List item 1</li><li>List item 2</li></ol></i>");
+  EXPECT_EQUAL(os.str(), expected);
+}
+
+// --------------------------------------------------------------------------
+void test_write_6 () {
+  test6 t("Text 6", {"List item 1", "List item 2"});
+  std::ostringstream os;
+  persistent::io::write_xml(os, t, false);
+
+  auto expected = build_xml("<i><ol><li>List item 1</li><li>List item 2</li></ol></i><i>Text 6</i>");
+  EXPECT_EQUAL(os.str(), expected);
+}
+
+// --------------------------------------------------------------------------
 void test_write_array () {
 
   persistent::fix_list<int64_t, 5> a("a", {1, 2, 3, 4, 5});
@@ -233,6 +309,10 @@ void test_main (const testing::start_params& params) {
   run_test(test_read_5);
   run_test(test_read_6);
   run_test(test_read_7);
+  run_test(test_read_8);
+  run_test(test_read_9);
+  run_test(test_read_10);
+  run_test(test_read_11);
 
   run_test(test_write_array);
   run_test(test_write_vector);
@@ -240,6 +320,8 @@ void test_main (const testing::start_params& params) {
   run_test(test_write_2);
   run_test(test_write_3);
   run_test(test_write_4);
+  run_test(test_write_5);
+  run_test(test_write_6);
 }
 
 // --------------------------------------------------------------------------

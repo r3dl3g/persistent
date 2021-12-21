@@ -255,7 +255,7 @@ namespace persistent {
       }
 
       static inline void read_list_end (std::istream& is) {
-        read_char(is, ']');
+        read_char(is >> std::ws, ']');
       }
 
       static inline void read_property_init (std::istream& is, std::string& key) {
@@ -292,11 +292,20 @@ namespace persistent {
         }
         return delim;
       }
+
+      static inline bool is_next_delimiter (std::istream& is) {
+        is >> std::ws;
+        char delim = is.peek();
+        return (delim == '[') || (delim == '{') || (delim == ']') || (delim == '}') || (delim == ':') || (delim == ',');
+      }
     };
 
     template<typename T>
     struct read_value_t<std::istream, T> {
       static bool from (std::istream& is, T& t) {
+        if (parser<std::istream>::is_next_delimiter(is)) {
+          return false;
+        }
         is >> t;
         return true;
       }
@@ -305,7 +314,11 @@ namespace persistent {
     template<>
     struct read_value_t<std::istream, std::string> {
       static bool from (std::istream& is, std::string& t) {
-        is >> std::ws >> std::quoted(t);
+        is >> std::ws;
+        if (is.peek() != '"') {
+          return false;
+        }
+        is >> std::quoted(t);
         return true;
       }
     };
@@ -313,8 +326,11 @@ namespace persistent {
     template<>
     struct read_value_t<std::istream, unsigned char> {
       static bool from (std::istream& is, unsigned char& t) {
+        if (parser<std::istream>::is_next_delimiter(is)) {
+          return false;
+        }
         int i;
-        is >> std::ws >> i;
+        is >> i;
         t = static_cast<unsigned char>(i);
         return true;
       }
@@ -323,8 +339,11 @@ namespace persistent {
     template<>
     struct read_value_t<std::istream, char> {
       static bool from (std::istream& is, char& t) {
+        if (parser<std::istream>::is_next_delimiter(is)) {
+          return false;
+        }
         int i;
-        is >> std::ws >> i;
+        is >> i;
         t = static_cast<char>(i);
         return true;
       }

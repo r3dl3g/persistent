@@ -35,7 +35,7 @@ namespace persistent {
 
     // --------------------------------------------------------------------------
     //
-    // specializations for ostream
+    // specializations for xml ostream
     //
     struct xml_formatter_context : public ios_formatter_context {
       xml_formatter_context (std::ostream& os, bool beautify = true)
@@ -227,27 +227,22 @@ namespace persistent {
       static bool from (xml_parser_context& in, T& t) {
         if (in.next_token().empty()) {
           return read_value(in.is, t);
-        } else {
-          return false;
         }
+        return false;
       }
     };
 
     template<>
     struct read_value_t<xml_parser_context, std::string> {
       static bool from (xml_parser_context& in, std::string& t) {
-        std::getline(in.is, t, '<');
-        if (in.is.good()) {
-          in.is.putback('<');
+        if (in.next_token().empty()) {
+          std::getline(in.is, t, '<');
+          if (in.is.good()) {
+            in.is.putback('<');
+          }
+          return true;
         }
-        return true;
-      }
-    };
-
-    template<>
-    struct read_value_t<xml_parser_context, full_line> {
-      static bool from (xml_parser_context& in, full_line& t) {
-        return read_value_t<xml_parser_context, std::string>::from(in, t);
+        return false;
       }
     };
 

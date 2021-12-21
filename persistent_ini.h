@@ -110,7 +110,7 @@ namespace persistent {
 
     // --------------------------------------------------------------------------
     //
-    // specializations for json formatted ostream
+    // specializations for ini formatted ostream
     //
     struct ini_formatter_context {
       ini_formatter_context (std::ostream& os)
@@ -127,7 +127,6 @@ namespace persistent {
         os << std::endl;
       }
 
-    private:
       std::ostream& os;
     };
 
@@ -175,6 +174,24 @@ namespace persistent {
       }
     };
 
+    template<>
+    struct write_value_t<ini_formatter_context, const char*> {
+      static void to (ini_formatter_context& out, const char* t) {
+        out.print_path();
+        out.os << t;
+        out.endl();
+      }
+    };
+
+    template<>
+    struct write_value_t<ini_formatter_context, const std::string> {
+      static void to (ini_formatter_context& out, const std::string& t) {
+        out.print_path();
+        out.os << t;
+        out.endl();
+      }
+    };
+
     template<typename T>
     void write_ini (std::ostream& os, const T& t) {
       ini_formatter_context out(os);
@@ -183,7 +200,7 @@ namespace persistent {
 
     // --------------------------------------------------------------------------
     //
-    // specializations for json formatted ostream
+    // specializations for ini formatted istream
     //
     struct ini_parser_context {
       ini_parser_context (std::istream& is)
@@ -299,8 +316,8 @@ namespace persistent {
     };
 
     template<>
-    struct read_value_t<ini_parser_context, full_line> {
-      static bool from (ini_parser_context& in, full_line& t) {
+    struct read_value_t<ini_parser_context, std::string> {
+      static bool from (ini_parser_context& in, std::string& t) {
         if (in.match()) {
           char next = in.is.peek();
           if ((next != '\n') && (next != '\r')) {

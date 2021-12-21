@@ -150,13 +150,6 @@ namespace persistent {
       }
     };
 
-    template<>
-    struct read_value_t<json_parser_context, full_line> {
-      static bool from (json_parser_context& in, full_line& t) {
-        return read_value_t<json_parser_context, std::string>::from(in, t);
-      }
-    };
-
     template<typename T>
     inline bool read_json (std::istream& is, T& t) {
       json_parser_context f(is);

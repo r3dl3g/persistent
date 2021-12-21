@@ -31,6 +31,7 @@
 
 namespace persistent {
 
+  // --------------------------------------------------------------------------
   template<typename T>
   using prop = named_property<T, const char*>;
 
@@ -77,17 +78,6 @@ namespace persistent {
   //
   template<typename T>
   using shared = prop<std::shared_ptr<T>>;
-
-  // --------------------------------------------------------------------------
-  //
-  // complete line, till parser specific delemiter
-  //
-  class full_line : public std::string {
-  public:
-    inline full_line (const std::string& value = {})
-      : std::string(value)
-    {}
-  };
 
   // --------------------------------------------------------------------------
   //

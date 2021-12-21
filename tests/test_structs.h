@@ -122,6 +122,43 @@ struct test4 : public basic_struct<int64, list<int>> {
   list<int> l;
 };
 
+// --------------------------------------------------------------------------
+struct test5 : public basic_struct<text, list<std::string>> {
+  typedef basic_struct<text, list<std::string>> super;
+
+  test5 (const std::string& i_ = {}, const std::vector<std::string>& l_ = {})
+    : super(i, l)
+    , i("i", i_)
+    , l("i", l_)
+  {}
+
+  test5 (const test5& rhs)
+    : test5 () {
+    operator=(rhs);
+  }
+
+  text i;
+  list<std::string> l;
+};
+
+// --------------------------------------------------------------------------
+struct test6 : public basic_struct<list<std::string>, text> {
+  typedef basic_struct<list<std::string>, text> super;
+
+  test6 (const std::string& i_ = {}, const std::vector<std::string>& l_ = {})
+    : super(l, i)
+    , l("i", l_)
+    , i("i", i_)
+  {}
+
+  test6 (const test6& rhs)
+    : test6 () {
+    operator=(rhs);
+  }
+
+  list<std::string> l;
+  text i;
+};
 
 namespace persistent {
 
