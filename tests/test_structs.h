@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "persistent/basic_struct.h"
+#include "persistent/persistent.h"
 
 using namespace persistent;
 
@@ -50,135 +50,116 @@ template<> constexpr std::pair<char const*, double>       get_test_data<double> 
 template<> inline    std::pair<char const*, std::string>  get_test_data<std::string> ()  { return { "Some text", "Some text" }; }
 
 // --------------------------------------------------------------------------
-struct test_int64 : public basic_struct<prop::int64, prop::int64> {
-  typedef basic_struct<prop::int64, prop::int64> super;
+struct test_int64 : private persistent_struct {
 
-  test_int64 ()
-    : super(i, j)
-    , i(names::i)
-    , j(names::j)
-  {}
+  int64_t i = 0;
+  int64_t j = 0;
 
-  test_int64 (const test_int64& rhs)
-    : test_int64 () {
-    operator=(rhs);
+  auto attributes () {
+    return make_attributes(attribute(i, names::i), attribute(j, names::j));
   }
 
-  prop::int64 i;
-  prop::int64 j;
+  auto attributes () const {
+    return (const_cast<test_int64&>(*this)).attributes();
+  }
+
 };
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------------
-struct test2 : public basic_container {
+struct test2 : private persistent_struct {
 
-  prop_t::type<int64_t, names::i1> i1;
-  prop_t::type<test_int64, names::t1> t1;
-  prop_t::type<int64_t, names::i2> i2;
+  int64_t i1 = 0;
+  test_int64 t1;
+  int64_t i2 = 0;
 
-  auto get_members () -> decltype(std::tie(i1, t1, i2)) {
-    return std::tie(i1, t1, i2);
+  auto attributes () {
+    return std::make_tuple(attribute(i1, names::i1), attribute(t1, names::t1), attribute(i2, names::i2));
   }
 
-  auto get_members () const -> decltype(std::tie(i1, t1, i2)) {
-    return std::tie(i1, t1, i2);
+  const auto attributes () const {
+    return (const_cast<test2&>(*this)).attributes();
   }
 
 };
 
 // --------------------------------------------------------------------------
-struct test3 : public basic_container {
+struct test3 : private persistent_struct {
 private:
-  prop::type<std::vector<test_int64>> m_v;
+  std::vector<test_int64> m_v;
 
 public:
-  typedef member_variables_t<decltype(m_v)> member_variables;
-
-  test3 ()
-    : members(m_v)
-    , m_v(names::v)
-  {}
-
-  test3 (const test3& rhs)
-    : test3()
-  {
-    members=rhs.members;
+  auto attributes () {
+    return std::make_tuple(attribute(m_v, names::v));
   }
 
-  member_variables& get_members () {
-    return members;
-  }
-
-  const member_variables& get_members () const {
-    return members;
+  const auto attributes () const {
+    return std::make_tuple(attribute(m_v, names::v));
   }
 
   const std::vector<test_int64>& v () const {
-    return m_v();
+    return m_v;
   }
 
   std::vector<test_int64>& v () {
-    return m_v();
+    return m_v;
   }
-
-private:
-  member_variables members;
 };
 
 // --------------------------------------------------------------------------
-struct test4 : public basic_struct<prop_t::type<int64_t, names::i>, prop_t::type<std::vector<int>, names::i>> {
-  typedef basic_struct<prop_t::type<int64_t, names::i>, prop_t::type<std::vector<int>, names::i>> super;
-
+struct test4 : private persistent_struct {
   test4 (int64_t i_ = {}, const std::vector<int>& l_ = {})
-    : super(i, l)
-    , i(i_)
+    : i(i_)
     , l(l_)
   {}
 
-  test4 (const test4& rhs)
-    : test4 () {
-    operator=(rhs);
+  auto attributes () {
+    return std::make_tuple(attribute(i, names::i), attribute(l, names::i));
   }
 
-  prop_t::type<int64_t, names::i> i;
-  prop_t::type<std::vector<int>, names::i> l;
+  const auto attributes () const {
+    return (const_cast<test4&>(*this)).attributes();
+  }
+
+  int64_t i;
+  std::vector<int> l;
 };
 
 // --------------------------------------------------------------------------
-struct test5 : public basic_struct<prop::text, prop::list<std::string>> {
-  typedef basic_struct<prop::text, prop::list<std::string>> super;
-
+struct test5 : private persistent_struct {
   test5 (const std::string& i_ = {}, const std::vector<std::string>& l_ = {})
-    : super(i, l)
-    , i(names::i, i_)
-    , l(names::i, l_)
+    : i(i_)
+    , l(l_)
   {}
 
-  test5 (const test5& rhs)
-    : test5 () {
-    operator=(rhs);
+  auto attributes () {
+    return std::make_tuple(attribute(i, names::i), attribute(l, names::i));
   }
 
-  prop::text i;
-  prop::list<std::string> l;
+  const auto attributes () const {
+    return (const_cast<test5&>(*this)).attributes();
+  }
+
+  std::string i;
+  std::vector<std::string> l;
 };
 
 // --------------------------------------------------------------------------
-struct test6 : public basic_struct<prop::list<std::string>, prop::text> {
-  typedef basic_struct<prop::list<std::string>, prop::text> super;
-
+struct test6 : private persistent_struct {
   test6 (const std::string& i_ = {}, const std::vector<std::string>& l_ = {})
-    : super(l, i)
-    , l(names::i, l_)
-    , i(names::i, i_)
+    : i(i_)
+    , l(l_)
   {}
 
-  test6 (const test6& rhs)
-    : test6 () {
-    operator=(rhs);
+  auto attributes () {
+    return std::make_tuple(attribute(l, names::i), attribute(i, names::i));
   }
 
-  prop::list<std::string> l;
-  prop::text i;
+  const auto attributes () const {
+    return (const_cast<test6&>(*this)).attributes();
+  }
+
+  std::vector<std::string> l;
+  std::string i;
 };
 
 // --------------------------------------------------------------------------

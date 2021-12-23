@@ -58,15 +58,13 @@ option(PERSISTENT_CXX_STANDARD "C++ standard to overwrite default cmake standard
   )
 
   set(INCLUDE_FILES
-    property.h
-    property_t.h
-    named_property.h
     persistent.h
-    basic_struct.h
+    persistent_ini.h
     persistent_io.h
     persistent_ios.h
     persistent_json.h
     persistent_ptree.h
+    persistent_xml.h
   )
 
   add_library(persistent INTERFACE)

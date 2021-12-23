@@ -20,14 +20,15 @@
 //
 // Common includes
 //
-#include <map>
+#include <vector>
 #include <sstream>
+#include <memory>
 
 // --------------------------------------------------------------------------
 //
 // Project includes
 //
-#include "basic_struct.h"
+#include "persistent.h"
 
 
 namespace persistent {
@@ -48,65 +49,6 @@ namespace persistent {
     private:
       std::ostringstream buffer;
     };
-
-    // --------------------------------------------------------------------------
-    template<typename T>
-    std::string get_property_name (const prop::type<T>& t) {
-      return t.name();
-    }
-
-    template<typename T, char const* N>
-    std::string get_property_name (const prop_t::type<T, N>& t) {
-      return t.name();
-    }
-
-    // --------------------------------------------------------------------------
-    template<typename T>
-    T& get_property_value (prop::type<T>& t) {
-      return t();
-    }
-
-    template<typename T>
-    const T& get_property_value (const prop::type<T>& t) {
-      return t();
-    }
-
-    template<typename T, char const* N>
-    T& get_property_value (prop_t::type<T, N>& t) {
-      return t();
-    }
-
-    template<typename T, char const* N>
-    const T& get_property_value (const prop_t::type<T, N>& t) {
-      return t();
-    }
-
-    // --------------------------------------------------------------------------
-    template<typename T>
-    struct member {
-      member (T& v, char const* n)
-        : value(v)
-        , name(n)
-      {}
-
-      T& value;
-      char const* name;
-    };
-
-    template<typename T>
-    std::string get_property_name (const member<T>& t) {
-      return t.name;
-    }
-
-    template<typename T>
-    T& get_property_value (member<T>& t) {
-      return t.value;
-    }
-
-    template<typename T>
-    const T& get_property_value (const member<T>& t) {
-      return t.value;
-    }
 
     // --------------------------------------------------------------------------
     //
@@ -167,7 +109,7 @@ namespace persistent {
      *  write named property
      */
     template<typename Target, typename T>
-    struct write_named_property_t {
+    struct write_attribute_t {
       static void to (Target& out, const T& t) {
         formatter<Target>::write_property_init(out, get_property_name(t));
         write_any(out, get_property_value(t));
@@ -176,8 +118,8 @@ namespace persistent {
     };
 
     template<typename Target, typename T>
-    void write_named_property (Target& out, const T& t) {
-      write_named_property_t<Target, T>::to(out, t);
+    void write_attribute (Target& out, const T& t) {
+      write_attribute_t<Target, T>::to(out, t);
     }
 
     /// write vector and array values
@@ -225,9 +167,9 @@ namespace persistent {
     * write recursive all elements of a tuple
     */
     template<std::size_t I, typename Target, typename... Types>
-    struct write_nth {
-      static void to (Target& out, std::tuple<const Types&...> const t) {
-        write_nth<I - 1, Target, Types...>::to(out, t);
+    struct write_attributes_t {
+      static void to (Target& out, std::tuple<const Types...> const& t) {
+        write_attributes_t<I - 1, Target, Types...>::to(out, t);
         formatter<Target>::write_members_delemiter(out);
         const auto& m = std::get<I>(t);
         write_any(out, m);
@@ -236,8 +178,8 @@ namespace persistent {
 
     /// end recursion at 0 elemnt.
     template<typename Target, typename... Types>
-    struct write_nth<0, Target, Types...> {
-      static void to (Target& out, std::tuple<const Types...> const t) {
+    struct write_attributes_t<0, Target, Types...> {
+      static void to (Target& out, std::tuple<const Types...> const& t) {
         const auto& m = std::get<0>(t);
         write_any(out, m);
       }
@@ -246,30 +188,16 @@ namespace persistent {
     /// write tuple
     template<typename Target, typename ... Types>
     struct write_tuple_t {
-      static void to (Target& out, const std::tuple<Types...> t) {
+      static void to (Target& out, const std::tuple<Types...>& t) {
         formatter<Target>::write_struct_start(out);
-        write_nth<(sizeof...(Types)) - 1, Target, Types...>::to(out, t);
+        write_attributes_t<(sizeof...(Types)) - 1, Target, Types...>::to(out, t);
         formatter<Target>::write_struct_end(out);
       }
     };
 
     template<typename Target, typename... Types>
-    void write_tuple (Target& out, const std::tuple<Types...> t) {
+    void write_tuple (Target& out, const std::tuple<Types...>& t) {
       write_tuple_t<Target, Types...>::to(out, t);
-    }
-
-    /// write basic_struct
-    template<typename Target, typename ... Types>
-    struct write_struct_t {
-      static void to (Target& out, const basic_struct<Types...> t) {
-        write_tuple(out, persistent::get_members(t));
-      }
-    };
-
-    /// write struct helper
-    template<typename Target, typename ... Types>
-    void write_struct (Target& out, const basic_struct<Types...>& t) {
-      write_struct_t<Target, Types...>::to(out, t);
     }
 
     /// write shared values
@@ -285,25 +213,11 @@ namespace persistent {
       write_shared_t<Target, T>::to(out, t);
     }
 
-    /// detect named property
+    /// detect attribute
     template<typename Target, typename T>
-    struct write_any_t<Target, prop::type<T>> {
-      static void to (Target& out, const prop::type<T>& t) {
-        write_named_property(out, t);
-      }
-    };
-
-    template<typename Target, typename T, char const* N>
-    struct write_any_t<Target, prop_t::type<T, N>> {
-      static void to (Target& out, const prop_t::type<T, N>& t) {
-        write_named_property(out, t);
-      }
-    };
-
-    template<typename Target, typename T>
-    struct write_any_t<Target, member<T>> {
-      static void to (Target& out, const member<T>& t) {
-        write_named_property(out, t);
+    struct write_any_t<Target, attribute<T>> {
+      static void to (Target& out, const attribute<T>& t) {
+        write_attribute(out, t);
       }
     };
 
@@ -325,9 +239,9 @@ namespace persistent {
 
     /// detect struct
     template<typename Target, typename T>
-    struct write_any_t<Target, T, typename std::enable_if<std::is_base_of<basic_container, T>::value>::type> {
+    struct write_any_t<Target, T, typename std::enable_if<std::is_base_of<persistent_struct, T>::value>::type> {
       static void to (Target& out, const T& t) {
-        write_tuple(out, persistent::get_members(t));
+        write_tuple(out, persistent::attributes(t));
       }
     };
 
@@ -397,12 +311,12 @@ namespace persistent {
 
     /// read property
     template<typename Source, typename T>
-    struct read_named_property_t {
+    struct read_attribute_t {
       static bool from (Source& in, T& t) {
         std::string name;
         try {
           parser<Source>::read_property_init(in, name);
-          const bool found = read_any(in, t());
+          const bool found = read_any(in, get_property_value(t));
           parser<Source>::read_property_finish(in, name);
           return found;
         } catch (std::exception& ex) {
@@ -412,8 +326,8 @@ namespace persistent {
     };
 
     template<typename Source, typename T>
-    inline bool read_named_property (Source& in, T& t) {
-      return read_named_property_t<Source, T>::from(in, t);
+    inline bool read_attribute (Source& in, T& t) {
+      return read_attribute_t<Source, T>::from(in, t);
     }
 
     /// read vector
@@ -467,9 +381,9 @@ namespace persistent {
 
     /// read element with name of a tuple
     template<std::size_t I, typename Source, typename ... Types>
-    struct read_named {
+    struct read_attributes_t {
       static bool property (Source& in, const std::string& name, std::tuple<Types...>& t) {
-        bool found = read_named<I - 1, Source, Types...>::property(in, name, t);
+        bool found = read_attributes_t<I - 1, Source, Types...>::property(in, name, t);
         if (!found) {
           auto& f = std::get<I - 1>(t);
           if (name == get_property_name(f)) {
@@ -482,7 +396,7 @@ namespace persistent {
 
     /// Stop recoursion at element 0
     template<typename Source, typename ... Types>
-    struct read_named<0, Source, Types...> {
+    struct read_attributes_t<0, Source, Types...> {
       static inline bool property (Source&, const std::string& name, std::tuple<Types ...>&) {
         return false;
       }
@@ -491,11 +405,11 @@ namespace persistent {
     /// read tuple
     template<typename Source, typename ... Types>
     struct read_tuple_t {
-      static bool from (Source& in, std::tuple<Types...> t) {
+      static bool from (Source& in, std::tuple<Types...>& t) {
         std::string name;
         bool found = false;
         while (parser<Source>::read_next_struct_element(in, name)) {
-          found |= read_named<sizeof...(Types), Source, Types...>::property(in, name, t);
+          found |= read_attributes_t<sizeof...(Types), Source, Types...>::property(in, name, t);
           parser<Source>::read_struct_element_finish(in, name);
           name.clear();
         }
@@ -504,21 +418,8 @@ namespace persistent {
     };
 
     template<typename Source, typename ... Types>
-    inline bool read_tuple (Source& in, std::tuple<Types...> t) {
+    inline bool read_tuple (Source& in, std::tuple<Types...>& t) {
       return read_tuple_t<Source, Types...>::from(in, t);
-    }
-
-    /// read basic_struct
-    template<typename Source, typename ... Types>
-    struct read_struct_t {
-      static inline bool from (Source& in, basic_struct<Types...> t) {
-        return read_tuple(in, persistent::get_members(t));
-      }
-    };
-
-    template<typename Source, typename ... Types>
-    inline bool read_struct (Source& in, basic_struct<Types...> t) {
-      return read_struct_t<Source, Types...>::from(in, t);
     }
 
     /// read shared
@@ -538,18 +439,11 @@ namespace persistent {
       return read_shared_t<Source, T>::from(in, t);
     }
 
-    /// detect named property
+    /// detect attribute
     template<typename Source, typename T>
-    struct read_any_t<Source, prop::type<T>> {
-      static inline bool from (Source& in, prop::type<T>& t) {
-        return read_named_property(in, t);
-      }
-    };
-
-    template<typename Source, typename T, char const* N>
-    struct read_any_t<Source, prop_t::type<T, N>> {
-      static inline bool from (Source& in, prop_t::type<T, N>& t) {
-        return read_named_property(in, t);
+    struct read_any_t<Source, attribute<T>> {
+      static inline bool from (Source& in, attribute<T>& t) {
+        return read_attribute(in, t);
       }
     };
 
@@ -571,9 +465,10 @@ namespace persistent {
 
     /// detect struct
     template<typename Source, typename T>
-    struct read_any_t<Source, T, typename std::enable_if<std::is_base_of<basic_container, T>::value>::type> {
+    struct read_any_t<Source, T, typename std::enable_if<std::is_base_of<persistent_struct, T>::value>::type> {
       static inline bool from (Source& in, T& t) {
-        return read_tuple(in, persistent::get_members(t));
+        auto attr = persistent::attributes(t);
+        return read_tuple(in, attr);
       }
     };
 

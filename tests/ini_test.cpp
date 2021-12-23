@@ -24,10 +24,10 @@ void test_read_empty () {
 
   test_int64 t1;
   std::istringstream is("");
-  persistent::io::read_ini(is, t1);
+  io::read_ini(is, t1);
 
-  EXPECT_EQUAL(t1.i(), 0);
-  EXPECT_EQUAL(t1.j(), 0);
+  EXPECT_EQUAL(t1.i, 0);
+  EXPECT_EQUAL(t1.j, 0);
   EXPECT_TRUE(is.eof());
   EXPECT_FALSE(is.good());
 }
@@ -36,33 +36,20 @@ void test_read_empty () {
 template<typename T>
 void test_read_prop_type () {
   const auto expected = get_test_data<T>();
-  const std::string str = persistent::io::msg_fmt() << "i=" << expected.first;
+  const std::string str = io::msg_fmt() << "i=" << expected.first;
 
-  persistent::prop::type<T> i("i");
+  T value = {};
   std::istringstream is(str);
-  persistent::io::read_ini(is, i);
+  attribute at(value, "i");
+  io::read_ini(is, at);
 
-  EXPECT_EQUAL(i(), expected.second, " for type ", typeid(T).name(), " with source ", str);
-}
-// --------------------------------------------------------------------------
-template<typename T>
-void test_read_prop_t_type () {
-  const auto expected = get_test_data<T>();
-  const std::string str = persistent::io::msg_fmt() << "i=" << expected.first;
-
-  static constexpr char i_n[] = "i";
-  persistent::prop_t::type<T, i_n> i;
-  std::istringstream is(str);
-  persistent::io::read_ini(is, i);
-
-  EXPECT_EQUAL(i(), expected.second, " for type ", typeid(T).name(), " with source ", str);
+  EXPECT_EQUAL(value, expected.second, " for type ", typeid(T).name(), " with source ", str);
 }
 // --------------------------------------------------------------------------
 template<typename T, typename... Types>
 struct Test {
   static void test () {
     test_read_prop_type<T>();
-    test_read_prop_t_type<T>();
     Test<Types...>::test();
   }
 };
@@ -71,7 +58,6 @@ template<typename T>
 struct Test<T> {
   static void test () {
     test_read_prop_type<T>();
-    test_read_prop_t_type<T>();
   }
 };
 // --------------------------------------------------------------------------
@@ -83,40 +69,43 @@ void test_read_all_basic_types () {
 // --------------------------------------------------------------------------
 void test_read_array () {
 
-  persistent::prop::fix_list<int64_t, 5> a("a");
+  std::array<int64_t, 5> a;
   std::istringstream is("a.0=1\n"
                         "a.1=2\n"
                         "a.2=3\n"
                         "a.3=4\n"
                         "a.4=5\n");
-  persistent::io::read_ini(is, a);
+  attribute at(a, "a");
+  io::read_ini(is, at);
 
   std::array<int64_t, 5> expected = {1, 2, 3, 4, 5};
-  EXPECT_EQUAL(a(), expected);
+  EXPECT_EQUAL(a, expected);
 }
 // --------------------------------------------------------------------------
 void test_read_vector () {
 
-  persistent::prop::list<int64_t> v("v");
+  std::vector<int64_t> v;
   std::istringstream is("v.0=1\n"
                         "v.1=2\n"
                         "v.2=3\n"
                         "v.3=4\n"
                         "v.4=5\n");
-  persistent::io::read_ini(is, v);
+  attribute at(v, "v");
+  io::read_ini(is, at);
 
   std::vector<int64_t> expected = {1, 2, 3, 4, 5};
-  EXPECT_EQUAL(v(), expected);
+  EXPECT_EQUAL(v, expected);
 }
 
 // --------------------------------------------------------------------------
 void test_read_1 () {
 
-  persistent::prop::int64 i("i");
+  int64_t i = 0;
   std::istringstream is("i=4711\n");
-  persistent::io::read_ini(is, i);
+  attribute at(i, "i");
+  io::read_ini(is, at);
 
-  EXPECT_EQUAL(i(), 4711);
+  EXPECT_EQUAL(i, 4711);
   EXPECT_TRUE(is.eof());
   EXPECT_FALSE(is.good());
 }
@@ -127,10 +116,10 @@ void test_read_2 () {
   test_int64 t1;
   std::istringstream is("i=4711\n"
                         "j=815\n");
-  persistent::io::read_ini(is, t1);
+  io::read_ini(is, t1);
 
-  EXPECT_EQUAL(t1.i(), 4711);
-  EXPECT_EQUAL(t1.j(), 815);
+  EXPECT_EQUAL(t1.i, 4711);
+  EXPECT_EQUAL(t1.j, 815);
   EXPECT_TRUE(is.eof());
   EXPECT_FALSE(is.good());
 }
@@ -140,9 +129,9 @@ void test_read_3 () {
 
   test_int64 t1;
   std::istringstream is("i=4711\n");
-  persistent::io::read_ini(is, t1);
+  io::read_ini(is, t1);
 
-  EXPECT_EQUAL(t1.i(), 4711);
+  EXPECT_EQUAL(t1.i, 4711);
   EXPECT_TRUE(is.eof());
   EXPECT_FALSE(is.good());
 }
@@ -152,10 +141,10 @@ void test_read_4 () {
 
   test_int64 t1;
   std::istringstream is(" \n \t \n \t i \t = \t 4711 \n \t \n \t ");
-  persistent::io::read_ini(is, t1);
+  io::read_ini(is, t1);
 
-  EXPECT_EQUAL(t1.i(), 4711);
-  EXPECT_EQUAL(t1.j(), 0);
+  EXPECT_EQUAL(t1.i, 4711);
+  EXPECT_EQUAL(t1.j, 0);
   EXPECT_TRUE(is.eof());
   EXPECT_FALSE(is.good());
 }
@@ -167,12 +156,12 @@ void test_read_5 () {
                         "t1.i=911\n"
                         "t1.j=203\n"
                         "i2=4711\n");
-  persistent::io::read_ini(is, t2);
+  io::read_ini(is, t2);
 
-  EXPECT_EQUAL(t2.i1(), 815);
-  EXPECT_EQUAL(t2.t1().i(), 911);
-  EXPECT_EQUAL(t2.t1().j(), 203);
-  EXPECT_EQUAL(t2.i2(), 4711);
+  EXPECT_EQUAL(t2.i1, 815);
+  EXPECT_EQUAL(t2.t1.i, 911);
+  EXPECT_EQUAL(t2.t1.j, 203);
+  EXPECT_EQUAL(t2.i2, 4711);
 }
 
 // --------------------------------------------------------------------------
@@ -182,14 +171,14 @@ void test_read_6 () {
   std::istringstream is("i=4711\n"
                         "k=815\n");
   try {
-    persistent::io::read_ini(is, t1);
+    io::read_ini(is, t1);
     EXPECT_FALSE("Exception expected");
   } catch (std::exception& ex) {
     EXPECT_TRUE("Exception expected");
   }
 
-  EXPECT_EQUAL(t1.i(), 4711);
-  EXPECT_EQUAL(t1.j(), 0);
+  EXPECT_EQUAL(t1.i, 4711);
+  EXPECT_EQUAL(t1.j, 0);
   EXPECT_FALSE(is.good());
 }
 
@@ -203,15 +192,15 @@ void test_read_7 () {
                         "v.1.j=4\n"
                         "v.2.i=5\n"
                         "v.2.j=6\n");
-  persistent::io::read_ini(is, t3);
+  io::read_ini(is, t3);
 
   EXPECT_EQUAL(t3.v().size(), 3);
-  EXPECT_EQUAL(t3.v()[0].i(), 1);
-  EXPECT_EQUAL(t3.v()[0].j(), 2);
-  EXPECT_EQUAL(t3.v()[1].i(), 3);
-  EXPECT_EQUAL(t3.v()[1].j(), 4);
-  EXPECT_EQUAL(t3.v()[2].i(), 5);
-  EXPECT_EQUAL(t3.v()[2].j(), 6);
+  EXPECT_EQUAL(t3.v()[0].i, 1);
+  EXPECT_EQUAL(t3.v()[0].j, 2);
+  EXPECT_EQUAL(t3.v()[1].i, 3);
+  EXPECT_EQUAL(t3.v()[1].j, 4);
+  EXPECT_EQUAL(t3.v()[2].i, 5);
+  EXPECT_EQUAL(t3.v()[2].j, 6);
 }
 
 // --------------------------------------------------------------------------
@@ -222,12 +211,12 @@ void test_read_8a () {
                         "i.0=1\n"
                         "i.1=2\n"
                         "i.2=3\n");
-  persistent::io::read_ini(is, t4);
+  io::read_ini(is, t4);
 
-  EXPECT_EQUAL(t4.i(), 4711);
-  EXPECT_EQUAL(t4.l()[0], 1);
-  EXPECT_EQUAL(t4.l()[1], 2);
-  EXPECT_EQUAL(t4.l()[2], 3);
+  EXPECT_EQUAL(t4.i, 4711);
+  EXPECT_EQUAL(t4.l[0], 1);
+  EXPECT_EQUAL(t4.l[1], 2);
+  EXPECT_EQUAL(t4.l[2], 3);
 }
 
 // --------------------------------------------------------------------------
@@ -237,12 +226,12 @@ void test_read_8 () {
                         "i.0=List item 1\n"
                         "i.1=List item 2\n");
 
-  persistent::io::read_ini(is, t);
+  io::read_ini(is, t);
 
   std::vector<std::string> expected({"List item 1", "List item 2"});
 
-  EXPECT_EQUAL(t.i(), "Text 5");
-  EXPECT_EQUAL(t.l(), expected);
+  EXPECT_EQUAL(t.i, "Text 5");
+  EXPECT_EQUAL(t.l, expected);
 
   EXPECT_FALSE(is.good());
 }
@@ -254,12 +243,12 @@ void test_read_9 () {
                         "i.0=List item 1\n"
                         "i.1=List item 2\n");
 
-  persistent::io::read_ini(is, t);
+  io::read_ini(is, t);
 
   std::vector<std::string> expected({"List item 1", "List item 2"});
 
-  EXPECT_EQUAL(t.i(), "Text 6");
-  EXPECT_EQUAL(t.l(), expected);
+  EXPECT_EQUAL(t.i, "Text 6");
+  EXPECT_EQUAL(t.l, expected);
 
   EXPECT_FALSE(is.good());
 }
@@ -271,12 +260,12 @@ void test_read_10 () {
                         "i.1=List item 2\n"
                         "i=Text 7\n");
 
-  persistent::io::read_ini(is, t);
+  io::read_ini(is, t);
 
   std::vector<std::string> expected({"List item 1", "List item 2"});
 
-  EXPECT_EQUAL(t.i(), "Text 7");
-  EXPECT_EQUAL(t.l(), expected);
+  EXPECT_EQUAL(t.i, "Text 7");
+  EXPECT_EQUAL(t.l, expected);
 
   EXPECT_FALSE(is.good());
 }
@@ -288,21 +277,21 @@ void test_read_11 () {
                         "i.1=List item 2\n"
                         "i=Text 8\n");
 
-  persistent::io::read_ini(is, t);
+  io::read_ini(is, t);
 
   std::vector<std::string> expected({"List item 1", "List item 2"});
 
-  EXPECT_EQUAL(t.i(), "Text 8");
-  EXPECT_EQUAL(t.l(), expected);
+  EXPECT_EQUAL(t.i, "Text 8");
+  EXPECT_EQUAL(t.l, expected);
 
   EXPECT_FALSE(is.good());
 }
 
 // --------------------------------------------------------------------------
 void test_write_1 () {
-  persistent::prop::int64 i("i", 4711);
+  int64_t i = 4711;
   std::ostringstream os;
-  persistent::io::write_ini(os, i);
+  io::write_ini(os, attribute(i, "i"));
 
   EXPECT_EQUAL(os.str(), "i=4711\n");
 }
@@ -311,7 +300,7 @@ void test_write_1 () {
 void test_write_2 () {
   test_int64 t1;
   std::ostringstream os;
-  persistent::io::write_ini(os, t1);
+  io::write_ini(os, t1);
 
   EXPECT_EQUAL(os.str(), "i=0\n"
                          "j=0\n");
@@ -321,7 +310,7 @@ void test_write_2 () {
 void test_write_3 () {
   test2 t2;
   std::ostringstream os;
-  persistent::io::write_ini(os, t2);
+  io::write_ini(os, t2);
 
   EXPECT_EQUAL(os.str(), "i1=0\n"
                          "t1.i=0\n"
@@ -334,7 +323,7 @@ void test_write_4 () {
   test3 t3;
   t3.v().push_back(test_int64());
   std::ostringstream os;
-  persistent::io::write_ini(os, t3);
+  io::write_ini(os, t3);
 
   EXPECT_EQUAL(os.str(), "v.0.i=0\n"
                          "v.0.j=0\n");
@@ -344,7 +333,7 @@ void test_write_4 () {
 void test_write_5 () {
   test4 t4(4711, {1, 2, 3});
   std::ostringstream os;
-  persistent::io::write_ini(os, t4);
+  io::write_ini(os, t4);
 
   EXPECT_EQUAL(os.str(), "i=4711\n"
                          "i.0=1\n"
@@ -357,7 +346,7 @@ void test_write_5 () {
 void test_write_6 () {
   test5 t("Text 5", {"List item 1", "List item 2"});
   std::ostringstream os;
-  persistent::io::write_ini(os, t);
+  io::write_ini(os, t);
 
   EXPECT_EQUAL(os.str(), "i=Text 5\n"
                          "i.0=List item 1\n"
@@ -368,7 +357,7 @@ void test_write_6 () {
 void test_write_7 () {
   test6 t("Text 6", {"List item 1", "List item 2"});
   std::ostringstream os;
-  persistent::io::write_ini(os, t);
+  io::write_ini(os, t);
 
   EXPECT_EQUAL(os.str(), "i.0=List item 1\n"
                          "i.1=List item 2\n"
@@ -378,9 +367,9 @@ void test_write_7 () {
 // --------------------------------------------------------------------------
 void test_write_array () {
 
-  persistent::prop::fix_list<int64_t, 5> a("a", {1, 2, 3, 4, 5});
+  std::array<int64_t, 5> a({1, 2, 3, 4, 5});
   std::ostringstream os;
-  persistent::io::write_ini(os, a);
+  io::write_ini(os, attribute(a, "a"));
   EXPECT_EQUAL(os.str(), "a.0=1\n"
                          "a.1=2\n"
                          "a.2=3\n"
@@ -390,9 +379,9 @@ void test_write_array () {
 // --------------------------------------------------------------------------
 void test_write_vector () {
 
-  persistent::prop::list<int64_t> v("v", {1, 2, 3, 4, 5});
+  std::vector<int64_t> v({1, 2, 3, 4, 5});
   std::ostringstream os;
-  persistent::io::write_ini(os, v);
+  io::write_ini(os, attribute(v, "v"));
   EXPECT_EQUAL(os.str(), "v.0=1\n"
                          "v.1=2\n"
                          "v.2=3\n"

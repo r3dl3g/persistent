@@ -388,38 +388,26 @@ namespace std {
   // --------------------------------------------------------------------------
   template<typename ... Types>
   inline std::ostream& operator << (std::ostream& os, 
-                                    const persistent::basic_struct<Types...>& t) {
+                                    const std::tuple<persistent::attribute<Types>...>& t) {
     persistent::io::write(os, t);
     return os;
   }
 
   template<typename T>
-  inline std::ostream& operator << (std::ostream& os, const persistent::prop::type<T>& t) {
-    persistent::io::write(os, t);
-    return os;
-  }
-
-  template<typename T, char const* N>
-  inline std::ostream& operator << (std::ostream& os, const persistent::prop_t::type<T, N>& t) {
+  inline std::ostream& operator << (std::ostream& os, const persistent::attribute<T>& t) {
     persistent::io::write(os, t);
     return os;
   }
 
   // --------------------------------------------------------------------------
   template<typename ... Types>
-  inline std::istream& operator >> (std::istream& is, persistent::basic_struct<Types...>& t) {
+  inline std::istream& operator >> (std::istream& is, std::tuple<persistent::attribute<Types>...>& t) {
     persistent::io::read(is, t);
     return is;
   }
 
   template<typename T>
-  inline std::istream& operator >> (std::istream& is, const persistent::prop::type<T>& t) {
-    persistent::io::read(is, t);
-    return is;
-  }
-
-  template<typename T, char const* N>
-  inline std::istream& operator >> (std::istream& is, const persistent::prop_t::type<T, N>& t) {
+  inline std::istream& operator >> (std::istream& is, const persistent::attribute<T>& t) {
     persistent::io::read(is, t);
     return is;
   }

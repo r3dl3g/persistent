@@ -24,10 +24,10 @@ void test_read_empty () {
 
   test_int64 t1;
   std::istringstream is("{}");
-  persistent::io::read_json(is, t1);
+  io::read_json(is, t1);
 
-  EXPECT_EQUAL(t1.i(), 0);
-  EXPECT_EQUAL(t1.j(), 0);
+  EXPECT_EQUAL(t1.i, 0);
+  EXPECT_EQUAL(t1.j, 0);
   EXPECT_TRUE(is.good());
   is.get();
   EXPECT_TRUE(is.eof());
@@ -38,33 +38,20 @@ void test_read_empty () {
 template<typename T>
 void test_read_prop_type () {
   const auto expected = get_test_data<T>();
-  const std::string str = persistent::io::msg_fmt() << "\"i\":\"" << expected.first << "\"";
+  const std::string str = io::msg_fmt() << "\"i\":\"" << expected.first << "\"";
 
-  persistent::prop::type<T> i("i");
+  T value = {};
   std::istringstream is(str);
-  persistent::io::read_json(is, i);
+  attribute at(value, "i");
+  io::read_json(is, at);
 
-  EXPECT_EQUAL(i(), expected.second, " for type ", typeid(T).name(), " with source ", str);
-}
-// --------------------------------------------------------------------------
-template<typename T>
-void test_read_prop_t_type () {
-  const auto expected = get_test_data<T>();
-  const std::string str = persistent::io::msg_fmt() << "\"i\":\"" << expected.first << "\"";
-
-  static constexpr char i_n[] = "i";
-  persistent::prop_t::type<T, i_n> i;
-  std::istringstream is(str);
-  persistent::io::read_json(is, i);
-
-  EXPECT_EQUAL(i(), expected.second, " for type ", typeid(T).name(), " with source ", str);
+  EXPECT_EQUAL(value, expected.second, " for type ", typeid(T).name(), " with source ", str);
 }
 // --------------------------------------------------------------------------
 template<typename T, typename... Types>
 struct Test {
   static void test () {
     test_read_prop_type<T>();
-    test_read_prop_t_type<T>();
     Test<Types...>::test();
   }
 };
@@ -73,7 +60,6 @@ template<typename T>
 struct Test<T> {
   static void test () {
     test_read_prop_type<T>();
-    test_read_prop_t_type<T>();
   }
 };
 // --------------------------------------------------------------------------
@@ -85,22 +71,24 @@ void test_read_all_basic_types () {
 // --------------------------------------------------------------------------
 void test_read_array () {
 
-  persistent::prop::fix_list<int64_t, 5> a("a");
+  std::array<int64_t, 5> a;
   std::istringstream is("\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"]");
-  persistent::io::read_json(is, a);
+  attribute at(a, "a");
+  io::read_json(is, at);
 
   std::array<int64_t, 5> expected = {1, 2, 3, 4, 5};
-  EXPECT_EQUAL(a(), expected);
+  EXPECT_EQUAL(a, expected);
 }
 // --------------------------------------------------------------------------
 void test_read_vector () {
 
-  persistent::prop::list<int64_t> v("v");
+  std::vector<int64_t> v;
   std::istringstream is("\"v\":['1','2','3','4','5']");
-  persistent::io::read_json(is, v);
+  attribute at(v, "v");
+  io::read_json(is, at);
 
   std::vector<int64_t> expected = {1, 2, 3, 4, 5};
-  EXPECT_EQUAL(v(), expected);
+  EXPECT_EQUAL(v, expected);
 }
 
 // --------------------------------------------------------------------------
@@ -108,9 +96,9 @@ void test_read_1 () {
 
   test_int64 t1;
   std::istringstream is("{\"i\":\"4711\"}");
-  persistent::io::read_json(is, t1);
+  io::read_json(is, t1);
 
-  EXPECT_EQUAL(t1.i(), 4711);
+  EXPECT_EQUAL(t1.i, 4711);
   EXPECT_TRUE(is.eof());
   EXPECT_FALSE(is.good());
 }
@@ -120,10 +108,10 @@ void test_read_2 () {
 
   test_int64 t1;
   std::istringstream is("{\"i\":\"4711\",\"j\":\"815\"}");
-  persistent::io::read_json(is, t1);
+  io::read_json(is, t1);
 
-  EXPECT_EQUAL(t1.i(), 4711);
-  EXPECT_EQUAL(t1.j(), 815);
+  EXPECT_EQUAL(t1.i, 4711);
+  EXPECT_EQUAL(t1.j, 815);
   EXPECT_TRUE(is.eof());
   EXPECT_FALSE(is.good());
 }
@@ -131,11 +119,12 @@ void test_read_2 () {
 // --------------------------------------------------------------------------
 void test_read_3 () {
 
-  persistent::prop::int64 i("i");
+  int64_t i = 0;
   std::istringstream is("\"i\":\"4711\"");
-  persistent::io::read_json(is, i);
+  attribute at(i, "i");
+  io::read_json(is, at);
 
-  EXPECT_EQUAL(i(), 4711);
+  EXPECT_EQUAL(i, 4711);
 }
 
 // --------------------------------------------------------------------------
@@ -143,10 +132,10 @@ void test_read_4 () {
 
   test_int64 t1;
   std::istringstream is(" \n \t { \n \t \"i\" \n \t : \n \t \"4711\" \n \t } \n \t ");
-  persistent::io::read_json(is, t1);
+  io::read_json(is, t1);
 
-  EXPECT_EQUAL(t1.i(), 4711);
-  EXPECT_EQUAL(t1.j(), 0);
+  EXPECT_EQUAL(t1.i, 4711);
+  EXPECT_EQUAL(t1.j, 0);
   EXPECT_TRUE(is.eof());
   EXPECT_FALSE(is.good());
 }
@@ -155,12 +144,12 @@ void test_read_4 () {
 void test_read_5 () {
   test2 t2;
   std::istringstream is("{\"i1\":\"815\", \"t1\":{\"i\":\"911\", \"j\":\"203\"}, \"i2\": \"4711\"}");
-  persistent::io::read_json(is, t2);
+  io::read_json(is, t2);
 
-  EXPECT_EQUAL(t2.i1(), 815);
-  EXPECT_EQUAL(t2.t1().i(), 911);
-  EXPECT_EQUAL(t2.t1().j(), 203);
-  EXPECT_EQUAL(t2.i2(), 4711);
+  EXPECT_EQUAL(t2.i1, 815);
+  EXPECT_EQUAL(t2.t1.i, 911);
+  EXPECT_EQUAL(t2.t1.j, 203);
+  EXPECT_EQUAL(t2.i2, 4711);
 }
 
 // --------------------------------------------------------------------------
@@ -169,14 +158,14 @@ void test_read_6 () {
   test_int64 t1;
   std::istringstream is("{\"i\":\"4711\",\"k\":\"815\"}");
   try {
-    persistent::io::read_json(is, t1);
+    io::read_json(is, t1);
     EXPECT_FALSE("Exception expected");
   } catch (std::exception& ex) {
     EXPECT_TRUE("Exception expected");
   }
 
-  EXPECT_EQUAL(t1.i(), 4711);
-  EXPECT_EQUAL(t1.j(), 0);
+  EXPECT_EQUAL(t1.i, 4711);
+  EXPECT_EQUAL(t1.j, 0);
   EXPECT_TRUE(is.good());
 }
 
@@ -185,15 +174,15 @@ void test_read_7 () {
 
   test3 t3;
   std::istringstream is("{\"v\":[{\"i\":\"1\",\"j\":\"2\"},{\"i\":\"3\",\"j\":\"4\"},{\"i\":\"5\",\"j\":\"6\"}]}");
-  persistent::io::read_json(is, t3);
+  io::read_json(is, t3);
 
   EXPECT_EQUAL(t3.v().size(), 3);
-  EXPECT_EQUAL(t3.v()[0].i(), 1);
-  EXPECT_EQUAL(t3.v()[0].j(), 2);
-  EXPECT_EQUAL(t3.v()[1].i(), 3);
-  EXPECT_EQUAL(t3.v()[1].j(), 4);
-  EXPECT_EQUAL(t3.v()[2].i(), 5);
-  EXPECT_EQUAL(t3.v()[2].j(), 6);
+  EXPECT_EQUAL(t3.v()[0].i, 1);
+  EXPECT_EQUAL(t3.v()[0].j, 2);
+  EXPECT_EQUAL(t3.v()[1].i, 3);
+  EXPECT_EQUAL(t3.v()[1].j, 4);
+  EXPECT_EQUAL(t3.v()[2].i, 5);
+  EXPECT_EQUAL(t3.v()[2].j, 6);
 }
 
 // --------------------------------------------------------------------------
@@ -201,12 +190,12 @@ void test_read_8 () {
   test5 t;
   std::istringstream is("{\"i\":\"Text 5\",\"i\":[\"List item 1\",\"List item 2\"]}");
 
-  persistent::io::read_json(is, t);
+  io::read_json(is, t);
 
   std::vector<std::string> expected({"List item 1", "List item 2"});
 
-  EXPECT_EQUAL(t.i(), "Text 5");
-  EXPECT_EQUAL(t.l(), expected);
+  EXPECT_EQUAL(t.i, "Text 5");
+  EXPECT_EQUAL(t.l, expected);
 
   EXPECT_FALSE(is.good());
 }
@@ -216,12 +205,12 @@ void test_read_9 () {
   test6 t;
   std::istringstream is("{\"i\":\"Text 6\",\"i\":[\"List item 1\",\"List item 2\"]}");
 
-  persistent::io::read_json(is, t);
+  io::read_json(is, t);
 
   std::vector<std::string> expected({"List item 1", "List item 2"});
 
-  EXPECT_EQUAL(t.i(), "Text 6");
-  EXPECT_EQUAL(t.l(), expected);
+  EXPECT_EQUAL(t.i, "Text 6");
+  EXPECT_EQUAL(t.l, expected);
 
   EXPECT_FALSE(is.good());
 }
@@ -231,12 +220,12 @@ void test_read_10 () {
   test5 t;
   std::istringstream is("{\"i\":[\"List item 1\",\"List item 2\"],\"i\":\"Text 7\"}");
 
-  persistent::io::read_json(is, t);
+  io::read_json(is, t);
 
   std::vector<std::string> expected({"List item 1", "List item 2"});
 
-  EXPECT_EQUAL(t.i(), "Text 7");
-  EXPECT_EQUAL(t.l(), expected);
+  EXPECT_EQUAL(t.i, "Text 7");
+  EXPECT_EQUAL(t.l, expected);
 
   EXPECT_FALSE(is.good());
 }
@@ -246,21 +235,21 @@ void test_read_11 () {
   test6 t;
   std::istringstream is("{\"i\":[\"List item 1\",\"List item 2\"],\"i\":\"Text 8\"}");
 
-  persistent::io::read_json(is, t);
+  io::read_json(is, t);
 
   std::vector<std::string> expected({"List item 1", "List item 2"});
 
-  EXPECT_EQUAL(t.i(), "Text 8");
-  EXPECT_EQUAL(t.l(), expected);
+  EXPECT_EQUAL(t.i, "Text 8");
+  EXPECT_EQUAL(t.l, expected);
 
   EXPECT_FALSE(is.good());
 }
 
 // --------------------------------------------------------------------------
 void test_write_1 () {
-  persistent::prop::int64 i("i", 4711);
+  int64_t i = 4711;
   std::ostringstream os;
-  persistent::io::write_json(os, i, false);
+  io::write_json(os, attribute(i, "i"), false);
 
   EXPECT_EQUAL(os.str(), "\"i\":\"4711\"");
 }
@@ -269,7 +258,7 @@ void test_write_1 () {
 void test_write_2 () {
   test_int64 t1;
   std::ostringstream os;
-  persistent::io::write_json(os, t1, false);
+  io::write_json(os, t1, false);
 
   EXPECT_EQUAL(os.str(), "{\"i\":\"0\",\"j\":\"0\"}");
 }
@@ -278,7 +267,7 @@ void test_write_2 () {
 void test_write_3 () {
   test2 t2;
   std::ostringstream os;
-  persistent::io::write_json(os, t2, false);
+  io::write_json(os, t2, false);
 
   EXPECT_EQUAL(os.str(),"{\"i1\":\"0\",\"t1\":{\"i\":\"0\",\"j\":\"0\"},\"i2\":\"0\"}");
 }
@@ -288,7 +277,7 @@ void test_write_4 () {
   test3 t3;
   t3.v().push_back(test_int64());
   std::ostringstream os;
-  persistent::io::write_json(os, t3, false);
+  io::write_json(os, t3, false);
 
   EXPECT_EQUAL(os.str(),"{\"v\":[{\"i\":\"0\",\"j\":\"0\"}]}");
 }
@@ -297,7 +286,7 @@ void test_write_4 () {
 void test_write_5 () {
   test5 t("Text 5", {"List item 1", "List item 2"});
   std::ostringstream os;
-  persistent::io::write_json(os, t, false);
+  io::write_json(os, t, false);
 
   EXPECT_EQUAL(os.str(),"{\"i\":\"Text 5\",\"i\":[\"List item 1\",\"List item 2\"]}");
 }
@@ -306,7 +295,7 @@ void test_write_5 () {
 void test_write_6 () {
   test6 t("Text 6", {"List item 1", "List item 2"});
   std::ostringstream os;
-  persistent::io::write_json(os, t, false);
+  io::write_json(os, t, false);
 
   EXPECT_EQUAL(os.str(),"{\"i\":[\"List item 1\",\"List item 2\"],\"i\":\"Text 6\"}");
 }
@@ -314,17 +303,17 @@ void test_write_6 () {
 // --------------------------------------------------------------------------
 void test_write_array () {
 
-  persistent::prop::fix_list<int64_t, 5> a("a", {1, 2, 3, 4, 5});
+  std::array<int64_t, 5> a({1, 2, 3, 4, 5});
   std::ostringstream os;
-  persistent::io::write_json(os, a, false);
+  io::write_json(os, attribute(a, "a"), false);
   EXPECT_EQUAL(os.str(),"\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"]");
 }
 // --------------------------------------------------------------------------
 void test_write_vector () {
 
-  persistent::prop::list<int64_t> v("v", {1, 2, 3, 4, 5});
+  std::vector<int64_t> v({1, 2, 3, 4, 5});
   std::ostringstream os;
-  persistent::io::write_json(os, v, false);
+  io::write_json(os, attribute(v, "v"), false);
   EXPECT_EQUAL(os.str(),"\"v\":[\"1\",\"2\",\"3\",\"4\",\"5\"]");
 }
 
