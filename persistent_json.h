@@ -126,7 +126,7 @@ namespace persistent {
         }
         char delim;
         in.is >> delim;
-        in.is >> t;
+        read_value_t<std::istream, T>::from(in.is, t);
         char delim2;
         in.is >> delim2;
         if (delim != delim2) {

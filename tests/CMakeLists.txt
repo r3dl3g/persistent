@@ -2,14 +2,6 @@ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 project("persistent-test" CXX)
 
-set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/obj)
-set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/test)
-
-if(NOT ANDROID AND NOT CMAKE_DEBUG_POSTFIX)
-  set(CMAKE_DEBUG_POSTFIX d)
-endif()
-
 add_subdirectory(.. persistent)
 set (TESTING_CXX_STANDARD ${PERSISTENT_CXX_STANDARD})
 add_subdirectory(../../testing testing)

@@ -43,32 +43,6 @@ namespace persistent {
   public:
     typedef T value_type;
 
-    using text = property<std::string>;
-    using boolean = property<bool>;
-    using int8 = property<int8_t>;
-    using int16 = property<int16_t>;
-    using int32 = property<int32_t>;
-    using int64 = property<int64_t>;
-    using uint8 = property<uint8_t>;
-    using uint16 = property<uint16_t>;
-    using uint32 = property<uint32_t>;
-    using uint64 = property<uint64_t>;
-    using byte = property<uint8_t>;
-    using word = property<uint16_t>;
-    using dword = property<uint32_t>;
-    using qword = property<uint64_t>;
-    using integer = property<int>;
-    using uinteger = property<unsigned>;
-    using float32 = property<float>;
-    using float64 = property<double>;
-
-    using list = property<std::vector<T>>;
-
-    template<std::size_t S>
-    using fix_list = property<std::array<T, S>>;
-
-    using shared = property<std::shared_ptr<T>>;
-
     /**
     * Default constructor with optional default value.
     */

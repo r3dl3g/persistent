@@ -36,11 +36,11 @@ struct MyStruct : public basic_container {  // persistent structs must be subcla
     members = rhs.members;
   }
 
-  prop<double> d;                     // Each member is now a prop<Type> memeber.
-  prop<int> i;
-  prop<std::string> s;
-  prop<std::array<int, 5>> a;
-  prop<std::vector<std::string>> v;
+  prop::type<double> d;                     // Each member is now a prop<Type> memeber.
+  prop::type<int> i;
+  prop::type<std::string> s;
+  prop::type<std::array<int, 5>> a;
+  prop::type<std::vector<std::string>> v;
 
   // A typedef for the typesafe tuple that holds the member information.
   typedef member_variables_t<decltype(d), decltype(i), decltype(s), decltype(a), decltype(v)> member_variables;
@@ -95,8 +95,8 @@ void test_read () {
 }
 
 // --------------------------------------------------------------------------
-struct MyStruct2 : public basic_struct<int64, text> {   // make your struct a subclass of basic_struct and tell it your property types.
-  typedef basic_struct<int64, text> super;              // just for more convenince...
+struct MyStruct2 : public basic_struct<prop::int64, prop::text> {   // make your struct a subclass of basic_struct and tell it your property types.
+  typedef basic_struct<prop::int64, prop::text> super;              // just for more convenince...
 
   MyStruct2 (int64_t i_ = {}, const std::string s_ = {})
     : super(i, s)                                       // register your properties
@@ -110,8 +110,8 @@ struct MyStruct2 : public basic_struct<int64, text> {   // make your struct a su
     super::operator=(rhs);
   }
 
-  int64 i;                                              // predefined properties for build in types.
-  text s;                                               // A string is now a text to avoid nameing collisions
+  prop::int64 i;                                              // predefined properties for build in types.
+  prop::text s;                                               // A string is now a text to avoid nameing collisions
 };
 
 // --------------------------------------------------------------------------
@@ -137,6 +137,150 @@ void test_read2 () {
   EXPECT_EQUAL(s.s(), "Some other text");
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------------------
+struct easy_test_base {
+  prop::int64 i;
+  prop::text t;
+};
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------
+struct easy_test_t : public basic_container {
+
+  easy_test_t (int64_t i_ = {}, const std::string& t_ = {})
+    : i("i", i_)
+    , t("t", t_)
+  {}
+
+  prop::int64 i;
+  prop::text t;
+
+  auto get_members () { return std::tie(i, t); }
+  const auto get_members () const { return std::tie(i, t); }
+
+};
+
+// --------------------------------------------------------------------------
+void easy_test () {
+
+  easy_test_t s{4711, "Some easy text"};
+
+  std::ostringstream os;
+  persistent::io::write_json(os, s, false);
+
+  EXPECT_EQUAL(os.str(), "{\"i\":\"4711\",\"t\":\"Some easy text\"}");
+}
+
+// --------------------------------------------------------------------------
+void easy_test_2 () {
+
+  easy_test_t s{4711, "Some easy text"};
+  easy_test_t s2 = s;
+
+  std::ostringstream os;
+  persistent::io::write_json(os, s2, false);
+
+  EXPECT_EQUAL(os.str(), "{\"i\":\"4711\",\"t\":\"Some easy text\"}");
+}
+
+// --------------------------------------------------------------------------
+struct fixed_test_t : public basic_container {
+
+  static constexpr char s_i[] = "i";
+  static constexpr char s_t[] = "t";
+
+  fixed_test_t (int64_t i_ = {}, double t_ = {})
+    : i(i_)
+    , t(t_)
+  {}
+
+  prop_t::type<int64_t, s_i> i;
+  prop_t::type<double, s_t> t;
+
+  auto get_members () { return std::tie(i, t); }
+  const auto get_members () const { return std::tie(i, t); }
+
+};
+
+// --------------------------------------------------------------------------
+void fixed_write_test () {
+
+  fixed_test_t s{4711, 8.15};
+
+  std::ostringstream os;
+  persistent::io::write_json(os, s, false);
+
+  EXPECT_EQUAL(os.str(), "{\"i\":\"4711\",\"t\":\"8.15\"}");
+}
+
+// --------------------------------------------------------------------------
+void fixed_read_test () {
+
+  fixed_test_t s;
+
+  std::istringstream is("{\"i\":\"4711\",\"t\":\"8.15\"}");
+  persistent::io::read_json(is, s);
+
+  EXPECT_EQUAL(s.i(), 4711);
+  EXPECT_EQUAL(s.t(), 8.15);
+}
+
+// --------------------------------------------------------------------------
+void fixed_write_test_2 () {
+
+  fixed_test_t s{4711, 8.15};
+  fixed_test_t s2 = s;
+
+  std::ostringstream os;
+  persistent::io::write_json(os, s2, false);
+
+  EXPECT_EQUAL(os.str(), "{\"i\":\"4711\",\"t\":\"8.15\"}");
+}
+
+// --------------------------------------------------------------------------
+struct primitive_test_t : private basic_container {
+
+  primitive_test_t (int64_t i_ = {}, double t_ = {})
+    : i(i_)
+    , t(t_)
+  {}
+
+  int64_t i;
+  double t;
+
+  template<typename T> using member = persistent::io::member<T>;
+
+  auto get_members () {
+    return std::make_tuple(member(i, "i"), member(t, "t"));
+  }
+
+  const auto get_members () const {
+    return (const_cast<primitive_test_t&>(*this)).get_members();
+  }
+
+};
+
+// --------------------------------------------------------------------------
+void primitive_write_test () {
+
+  primitive_test_t s{4711, 8.15};
+
+  std::ostringstream os;
+  persistent::io::write_json(os, s, false);
+
+  EXPECT_EQUAL(os.str(), "{\"i\":\"4711\",\"t\":\"8.15\"}");
+}
+
+// --------------------------------------------------------------------------
+void primitive_read_test () {
+
+  primitive_test_t s;
+
+  std::istringstream is("{\"i\":\"4711\",\"t\":\"8.15\"}");
+  persistent::io::read_json(is, s);
+
+  EXPECT_EQUAL(s.i, 4711);
+  EXPECT_EQUAL(s.t, 8.15);
+}
 // --------------------------------------------------------------------------
 void test_main (const testing::start_params& params) {
   testing::log_info("Running " __FILE__);
@@ -145,7 +289,17 @@ void test_main (const testing::start_params& params) {
 
   run_test(test_write2);
   run_test(test_read2);
+  run_test(easy_test);
+  run_test(easy_test_2);
+  run_test(fixed_write_test);
+  run_test(fixed_write_test_2);
+  run_test(fixed_read_test);
+  run_test(primitive_write_test);
+  run_test(primitive_read_test);
 
+  testing::log_info(persistent::io::msg_fmt() << "Size of easy_test_t: " << sizeof(easy_test_t)
+                                              << ", size of easy_test_2: " << sizeof(easy_test_base));
+  testing::log_info(persistent::io::msg_fmt() << "Size of fixed_test_t: " << sizeof(fixed_test_t));
 }
 
 // --------------------------------------------------------------------------

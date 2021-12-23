@@ -51,11 +51,11 @@ namespace persistent {
 
     /// write property
     template<typename T>
-    struct write_property_t<ptree, T> {
+    struct write_named_property_t<ptree, T> {
       static void to (ptree& p, const prop<T>& t) {
         ptree child;
-        write_any(child, t());
-        p.add_child(t.name(), child);
+        write_any(child, get_property_value(t));
+        p.add_child(get_property_name(t), child);
       }
     };
 
@@ -114,7 +114,7 @@ namespace persistent {
     /// read tuple
     template<typename ... Types>
     struct read_tuple_t<ptree, Types...> {
-      static bool from (ptree& p, std::tuple<prop<Types>&...>& t) {
+      static bool from (ptree& p, std::tuple<prop<Types>&...> t) {
         bool found = true;
         for (auto& item : p) {
           found |= read_named<sizeof...(Types), ptree, Types...>::property(item.second, item.first, t);

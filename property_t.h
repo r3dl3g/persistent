@@ -26,49 +26,36 @@ namespace persistent {
 
   // --------------------------------------------------------------------------
   //
-  // template class named_property
+  // template class property_t
   //
-  template<typename T, typename N = char const*>
-  class named_property : public property<T> {
+  template<typename T, const char* N>
+  class property_t : public property<T> {
   public:
     typedef property<T> super;
-    typedef typename super::value_type value_type;
-    typedef N name_type;
+    typedef T value_type;
 
-    /**
-    * Constructor with name assignment.
-    * Optional a default value can be given.
-    */
-    inline named_property (const name_type& name, const value_type& value = T{})
+    inline property_t (const value_type& value = {})
       : super(value)
-      , m_name(name)
     {}
 
-    /**
-    * A name must be given, so no default constructor is allowed.
-    */
-    named_property () = delete;
+    inline property_t (const property_t&) = default;
+    inline property_t (property_t&&) = default;
 
-    inline named_property (const named_property&) = default;
-    inline named_property (named_property&&) = default;
-
-    inline const name_type& name () const {
-      return m_name;
+    inline const char* name () const {
+      return N;
     }
 
     /// create a copy with same name and value
-    inline named_property* clone () const {
-      return new named_property(*this);
+    inline property_t* clone () const {
+      return new property_t(*this);
     }
 
     /// assignment
-    inline named_property& operator= (const named_property& rhs) {
+    inline property_t& operator= (const property_t& rhs) {
       super::operator=(rhs);
       return *this;
     }
 
-  private:
-    const name_type m_name;
   };
 
 } // namespace persistent

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project("persistent" LANGUAGES CXX VERSION 1.0.4)
+project("persistent" LANGUAGES CXX VERSION 2.0.0)
 
 include (GenerateExportHeader)
 include (CMakePackageConfigHelpers)
@@ -59,6 +59,7 @@ option(PERSISTENT_CXX_STANDARD "C++ standard to overwrite default cmake standard
 
   set(INCLUDE_FILES
     property.h
+    property_t.h
     named_property.h
     persistent.h
     basic_struct.h

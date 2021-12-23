@@ -92,6 +92,14 @@ namespace persistent {
     };
 
     template<>
+    struct write_value_t<std::ostream, const char> {
+      static void to (std::ostream& os, const char t) {
+        char buffer[2] = { t, 0 };
+        os << std::quoted(buffer);
+      }
+    };
+
+    template<>
     struct write_value_t<std::ostream, const unsigned char> {
       static void to (std::ostream& os, const unsigned char t) {
         os << +t;
@@ -99,8 +107,8 @@ namespace persistent {
     };
 
     template<>
-    struct write_value_t<std::ostream, const char> {
-      static void to (std::ostream& os, const char t) {
+    struct write_value_t<std::ostream, const signed char> {
+      static void to (std::ostream& os, const signed char t) {
         os << +t;
       }
     };
@@ -324,6 +332,22 @@ namespace persistent {
     };
 
     template<>
+    struct read_value_t<std::istream, char> {
+      static bool from (std::istream& is, char& c) {
+        if (parser<std::istream>::is_next_delimiter(is)) {
+          return false;
+        }
+        if (is.peek() != '"') {
+          return false;
+        }
+        std::string t;
+        is >> std::quoted(t);
+        c = (t.size() > 0 ? static_cast<char>(t[0]) : 0);
+        return true;
+      }
+    };
+
+    template<>
     struct read_value_t<std::istream, unsigned char> {
       static bool from (std::istream& is, unsigned char& t) {
         if (parser<std::istream>::is_next_delimiter(is)) {
@@ -337,14 +361,14 @@ namespace persistent {
     };
 
     template<>
-    struct read_value_t<std::istream, char> {
-      static bool from (std::istream& is, char& t) {
+    struct read_value_t<std::istream, signed char> {
+      static bool from (std::istream& is, signed char& t) {
         if (parser<std::istream>::is_next_delimiter(is)) {
           return false;
         }
         int i;
         is >> i;
-        t = static_cast<char>(i);
+        t = static_cast<signed char>(i);
         return true;
       }
     };
@@ -370,7 +394,13 @@ namespace std {
   }
 
   template<typename T>
-  inline std::ostream& operator << (std::ostream& os, const persistent::prop<T>& t) {
+  inline std::ostream& operator << (std::ostream& os, const persistent::prop::type<T>& t) {
+    persistent::io::write(os, t);
+    return os;
+  }
+
+  template<typename T, char const* N>
+  inline std::ostream& operator << (std::ostream& os, const persistent::prop_t::type<T, N>& t) {
     persistent::io::write(os, t);
     return os;
   }
@@ -383,7 +413,13 @@ namespace std {
   }
 
   template<typename T>
-  inline std::istream& operator >> (std::istream& is, const persistent::prop<T>& t) {
+  inline std::istream& operator >> (std::istream& is, const persistent::prop::type<T>& t) {
+    persistent::io::read(is, t);
+    return is;
+  }
+
+  template<typename T, char const* N>
+  inline std::istream& operator >> (std::istream& is, const persistent::prop_t::type<T, N>& t) {
     persistent::io::read(is, t);
     return is;
   }

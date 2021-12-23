@@ -21,13 +21,42 @@
 using namespace persistent;
 
 // --------------------------------------------------------------------------
-struct test_int64 : public basic_struct<int64, int64> {
-  typedef basic_struct<int64, int64> super;
+struct names {
+  static constexpr char i[] = "i";
+  static constexpr char j[] = "j";
+  static constexpr char v[] = "v";
+
+  static constexpr char i1[] = "i1";
+  static constexpr char t1[] = "t1";
+  static constexpr char i2[] = "i2";
+};
+
+// --------------------------------------------------------------------------
+template<typename T>
+constexpr std::pair<char const*, T> get_test_data ();
+
+template<> constexpr std::pair<char const*, bool>         get_test_data<bool> ()         { return { "1", true }; }
+template<> constexpr std::pair<char const*, char>         get_test_data<char> ()         { return { "\"A\"", 'A' }; }
+template<> constexpr std::pair<char const*, int8_t>       get_test_data<int8_t> ()       { return { "-127", -127 }; }
+template<> constexpr std::pair<char const*, uint8_t>      get_test_data<uint8_t> ()      { return { "255", 255 }; }
+template<> constexpr std::pair<char const*, int16_t>      get_test_data<int16_t> ()      { return { "-32767", -32767 }; }
+template<> constexpr std::pair<char const*, uint16_t>     get_test_data<uint16_t> ()     { return { "65535", 65535 }; }
+template<> constexpr std::pair<char const*, int32_t>      get_test_data<int32_t> ()      { return { "-2147483647", -2147483647 }; }
+template<> constexpr std::pair<char const*, uint32_t>     get_test_data<uint32_t> ()     { return { "4294967295", 4294967295 }; }
+template<> constexpr std::pair<char const*, int64_t>      get_test_data<int64_t> ()      { return { "-549755813887", -549755813887 }; }
+template<> constexpr std::pair<char const*, uint64_t>     get_test_data<uint64_t> ()     { return { "549755813887", 549755813887 }; }
+template<> constexpr std::pair<char const*, float>        get_test_data<float> ()        { return { "12345.12345", 12345.12345 }; }
+template<> constexpr std::pair<char const*, double>       get_test_data<double> ()       { return { "12345678.12345678", 12345678.12345678 }; }
+template<> inline    std::pair<char const*, std::string>  get_test_data<std::string> ()  { return { "Some text", "Some text" }; }
+
+// --------------------------------------------------------------------------
+struct test_int64 : public basic_struct<prop::int64, prop::int64> {
+  typedef basic_struct<prop::int64, prop::int64> super;
 
   test_int64 ()
     : super(i, j)
-    , i("i")
-    , j("j")
+    , i(names::i)
+    , j(names::j)
   {}
 
   test_int64 (const test_int64& rhs)
@@ -35,46 +64,38 @@ struct test_int64 : public basic_struct<int64, int64> {
     operator=(rhs);
   }
 
-  int64 i;
-  int64 j;
+  prop::int64 i;
+  prop::int64 j;
 };
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------------
 struct test2 : public basic_container {
 
-  test2 ()
-    : members(i1, t1, i2)
-    , i1("i1")
-    , t1("t1")
-    , i2("i2")
-  {}
+  prop_t::type<int64_t, names::i1> i1;
+  prop_t::type<test_int64, names::t1> t1;
+  prop_t::type<int64_t, names::i2> i2;
 
-  test2 (const test2& rhs)
-    : test2() {
-    members = rhs.members;
+  auto get_members () -> decltype(std::tie(i1, t1, i2)) {
+    return std::tie(i1, t1, i2);
   }
 
-  prop<int64_t> i1;
-  prop<test_int64> t1;
-  prop<int64_t> i2;
-
-  typedef member_variables_t<decltype(i1), decltype(t1), decltype(i2)> member_variables;
-
-    member_variables members;
+  auto get_members () const -> decltype(std::tie(i1, t1, i2)) {
+    return std::tie(i1, t1, i2);
+  }
 
 };
 
 // --------------------------------------------------------------------------
 struct test3 : public basic_container {
 private:
-  prop<std::vector<test_int64>> m_v;
+  prop::type<std::vector<test_int64>> m_v;
 
 public:
   typedef member_variables_t<decltype(m_v)> member_variables;
 
   test3 ()
     : members(m_v)
-    , m_v("v")
+    , m_v(names::v)
   {}
 
   test3 (const test3& rhs)
@@ -104,13 +125,13 @@ private:
 };
 
 // --------------------------------------------------------------------------
-struct test4 : public basic_struct<int64, list<int>> {
-  typedef basic_struct<int64, list<int>> super;
+struct test4 : public basic_struct<prop_t::type<int64_t, names::i>, prop_t::type<std::vector<int>, names::i>> {
+  typedef basic_struct<prop_t::type<int64_t, names::i>, prop_t::type<std::vector<int>, names::i>> super;
 
   test4 (int64_t i_ = {}, const std::vector<int>& l_ = {})
     : super(i, l)
-    , i("i", i_)
-    , l("i", l_)
+    , i(i_)
+    , l(l_)
   {}
 
   test4 (const test4& rhs)
@@ -118,18 +139,18 @@ struct test4 : public basic_struct<int64, list<int>> {
     operator=(rhs);
   }
 
-  int64 i;
-  list<int> l;
+  prop_t::type<int64_t, names::i> i;
+  prop_t::type<std::vector<int>, names::i> l;
 };
 
 // --------------------------------------------------------------------------
-struct test5 : public basic_struct<text, list<std::string>> {
-  typedef basic_struct<text, list<std::string>> super;
+struct test5 : public basic_struct<prop::text, prop::list<std::string>> {
+  typedef basic_struct<prop::text, prop::list<std::string>> super;
 
   test5 (const std::string& i_ = {}, const std::vector<std::string>& l_ = {})
     : super(i, l)
-    , i("i", i_)
-    , l("i", l_)
+    , i(names::i, i_)
+    , l(names::i, l_)
   {}
 
   test5 (const test5& rhs)
@@ -137,18 +158,18 @@ struct test5 : public basic_struct<text, list<std::string>> {
     operator=(rhs);
   }
 
-  text i;
-  list<std::string> l;
+  prop::text i;
+  prop::list<std::string> l;
 };
 
 // --------------------------------------------------------------------------
-struct test6 : public basic_struct<list<std::string>, text> {
-  typedef basic_struct<list<std::string>, text> super;
+struct test6 : public basic_struct<prop::list<std::string>, prop::text> {
+  typedef basic_struct<prop::list<std::string>, prop::text> super;
 
   test6 (const std::string& i_ = {}, const std::vector<std::string>& l_ = {})
     : super(l, i)
-    , l("i", l_)
-    , i("i", i_)
+    , l(names::i, l_)
+    , i(names::i, i_)
   {}
 
   test6 (const test6& rhs)
@@ -156,23 +177,9 @@ struct test6 : public basic_struct<list<std::string>, text> {
     operator=(rhs);
   }
 
-  list<std::string> l;
-  text i;
+  prop::list<std::string> l;
+  prop::text i;
 };
-
-namespace persistent {
-
-  template<>
-  auto get_members<test2> (test2& t) -> test2::member_variables& {
-    return t.members;
-  }
-
-  template<>
-  auto get_members<test2> (const test2& t) -> const test2::member_variables& {
-    return t.members;
-  }
-
-}
 
 // --------------------------------------------------------------------------
 

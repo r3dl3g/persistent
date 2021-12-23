@@ -33,11 +33,68 @@ void test_read_empty () {
   EXPECT_TRUE(is.eof());
   EXPECT_FALSE(is.good());
 }
+// --------------------------------------------------------------------------
+template<typename T>
+constexpr std::pair<char const*, T> get_ios_test_data () {
+  return get_test_data<T>();
+}
+
+template<> inline std::pair<char const*, std::string>  get_ios_test_data<std::string> ()  {
+  return { "\"Some text\"", "Some text" };
+}
+
+// --------------------------------------------------------------------------
+template<typename T>
+void test_read_prop_type () {
+  const auto expected = get_ios_test_data<T>();
+  const std::string str = persistent::io::msg_fmt() << "i:" << expected.first;
+
+  persistent::prop::type<T> i("i");
+  std::istringstream is(str);
+  persistent::io::read_stream(is, i);
+
+  EXPECT_EQUAL(i(), expected.second, " for type ", typeid(T).name(), " with source ", str);
+}
+// --------------------------------------------------------------------------
+template<typename T>
+void test_read_prop_t_type () {
+  const auto expected = get_ios_test_data<T>();
+  const std::string str = persistent::io::msg_fmt() << "i:" << expected.first;
+
+  static constexpr char i_n[] = "i";
+  persistent::prop_t::type<T, i_n> i;
+  std::istringstream is(str);
+  persistent::io::read_stream(is, i);
+
+  EXPECT_EQUAL(i(), expected.second, " for type ", typeid(T).name(), " with source ", str);
+}
+// --------------------------------------------------------------------------
+template<typename T, typename... Types>
+struct Test {
+  static void test () {
+    test_read_prop_type<T>();
+    test_read_prop_t_type<T>();
+    Test<Types...>::test();
+  }
+};
+
+template<typename T>
+struct Test<T> {
+  static void test () {
+    test_read_prop_type<T>();
+    test_read_prop_t_type<T>();
+  }
+};
+// --------------------------------------------------------------------------
+void test_read_all_basic_types () {
+  Test<bool, int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t, uint32_t, uint64_t, float, double,
+       std::string, char, short, int, long, unsigned char, unsigned short, unsigned int, unsigned long>::test();
+}
 
 // --------------------------------------------------------------------------
 void test_read_array () {
 
-  persistent::fix_list<int64_t, 5> a("a");
+  persistent::prop::fix_list<int64_t, 5> a("a");
   std::istringstream is("a:[1,2,3,4,5]");
   persistent::io::read_stream(is, a);
 
@@ -47,7 +104,30 @@ void test_read_array () {
 // --------------------------------------------------------------------------
 void test_read_vector () {
 
-  persistent::list<int64_t> v("v");
+  persistent::prop::list<int64_t> v("v");
+  std::istringstream is("v:[1,2,3,4,5]");
+  persistent::io::read_stream(is, v);
+
+  std::vector<int64_t> expected = {1, 2, 3, 4, 5};
+  EXPECT_EQUAL(v(), expected);
+}
+
+// --------------------------------------------------------------------------
+void test_read_prop_t_array () {
+
+  static char constexpr n_a[] = "a";
+  persistent::prop_t::fix_list<int64_t, 5, n_a> a;
+  std::istringstream is("a:[1,2,3,4,5]");
+  persistent::io::read_stream(is, a);
+
+  std::array<int64_t, 5> expected = {1, 2, 3, 4, 5};
+  EXPECT_EQUAL(a(), expected);
+}
+// --------------------------------------------------------------------------
+void test_read_prop_t_vector () {
+
+  static char constexpr n_v[] = "v";
+  persistent::prop_t::list<int64_t, n_v> v;
   std::istringstream is("v:[1,2,3,4,5]");
   persistent::io::read_stream(is, v);
 
@@ -83,7 +163,20 @@ void test_read_2 () {
 // --------------------------------------------------------------------------
 void test_read_3 () {
 
-  persistent::int64 i("i");
+  persistent::prop::int64 i("i");
+  std::istringstream is("i:4711");
+  persistent::io::read_stream(is, i);
+
+  EXPECT_EQUAL(i(), 4711);
+  EXPECT_TRUE(is.eof());
+  EXPECT_FALSE(is.good());
+}
+
+// --------------------------------------------------------------------------
+void test_read_prop_t_3 () {
+
+  static char constexpr n_i[] = "i";
+  persistent::prop_t::int64<n_i> i;
   std::istringstream is("i:4711");
   persistent::io::read_stream(is, i);
 
@@ -212,7 +305,7 @@ void test_read_11 () {
 
 // --------------------------------------------------------------------------
 void test_write_1 () {
-  persistent::int64 i("i", 4711);
+  persistent::prop::int64 i("i", 4711);
   std::ostringstream os;
   persistent::io::write_stream(os, i);
 
@@ -268,7 +361,7 @@ void test_write_6 () {
 // --------------------------------------------------------------------------
 void test_write_array () {
 
-  persistent::fix_list<int64_t, 5> a("a", {1, 2, 3, 4, 5});
+  persistent::prop::fix_list<int64_t, 5> a("a", {1, 2, 3, 4, 5});
   std::ostringstream os;
   persistent::io::write_stream(os, a);
   EXPECT_EQUAL(os.str(), "a:[1,2,3,4,5]");
@@ -276,7 +369,7 @@ void test_write_array () {
 // --------------------------------------------------------------------------
 void test_write_vector () {
 
-  persistent::list<int64_t> v("v", {1, 2, 3, 4, 5});
+  persistent::prop::list<int64_t> v("v", {1, 2, 3, 4, 5});
   std::ostringstream os;
   persistent::io::write_stream(os, v);
   EXPECT_EQUAL(os.str(), "v:[1,2,3,4,5]");
@@ -286,11 +379,15 @@ void test_write_vector () {
 void test_main (const testing::start_params& params) {
   testing::log_info("Running " __FILE__);
   run_test(test_read_empty);
+  run_test(test_read_all_basic_types);
   run_test(test_read_array);
   run_test(test_read_vector);
+  run_test(test_read_prop_t_array);
+  run_test(test_read_prop_t_vector);
   run_test(test_read_1);
   run_test(test_read_2);
   run_test(test_read_3);
+  run_test(test_read_prop_t_3);
   run_test(test_read_4);
   run_test(test_read_5);
   run_test(test_read_6);

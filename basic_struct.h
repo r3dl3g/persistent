@@ -37,13 +37,13 @@ namespace persistent {
     typedef member_variables_t<Type, Types...> member_variables;
 
     // a persistent basic_struct needs at least one member
-    basic_struct (prop<typename Type::value_type>& member, prop<typename Types::value_type>&... members)
+    basic_struct (Type& member, Types&... members)
       : members(member, members...)
     {}
 
     basic_struct () = delete;
-    basic_struct (const basic_struct&) = default;
-    basic_struct (basic_struct&&) = default;
+    basic_struct (const basic_struct&) = delete;
+    basic_struct (basic_struct&&) = delete;
 
     const basic_struct& operator= (const basic_struct& rhs) {
       if (this != &rhs) {

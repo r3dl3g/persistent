@@ -31,7 +31,7 @@ std::string build_xml (const std::string& t) {
 // --------------------------------------------------------------------------
 void test_read_empty () {
 
-  persistent::prop<test_int64> t1("t");
+  persistent::prop::type<test_int64> t1("t");
   std::istringstream is(build_xml("<t></t>"));
   persistent::io::read_xml(is, t1);
 
@@ -44,9 +44,57 @@ void test_read_empty () {
 }
 
 // --------------------------------------------------------------------------
+template<typename T>
+void test_read_prop_type () {
+  const auto expected = get_test_data<T>();
+  const std::string str = persistent::io::msg_fmt() << "<i>" << expected.first << "</i>";
+
+  persistent::prop::type<T> i("i");
+  std::istringstream is(build_xml(str));
+  persistent::io::read_xml(is, i);
+
+  EXPECT_EQUAL(i(), expected.second, " for type ", typeid(T).name(), " with source ", str);
+}
+// --------------------------------------------------------------------------
+template<typename T>
+void test_read_prop_t_type () {
+  const auto expected = get_test_data<T>();
+  const std::string str = persistent::io::msg_fmt() << "<i>" << expected.first << "</i>";
+
+  static constexpr char i_n[] = "i";
+  persistent::prop_t::type<T, i_n> i;
+  std::istringstream is(build_xml(str));
+  persistent::io::read_xml(is, i);
+
+  EXPECT_EQUAL(i(), expected.second, " for type ", typeid(T).name(), " with source ", str);
+}
+// --------------------------------------------------------------------------
+template<typename T, typename... Types>
+struct Test {
+  static void test () {
+    test_read_prop_type<T>();
+    test_read_prop_t_type<T>();
+    Test<Types...>::test();
+  }
+};
+
+template<typename T>
+struct Test<T> {
+  static void test () {
+    test_read_prop_type<T>();
+    test_read_prop_t_type<T>();
+  }
+};
+// --------------------------------------------------------------------------
+void test_read_all_basic_types () {
+  Test<bool, int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t, uint32_t, uint64_t, float, double,
+       std::string, char, short, int, long, unsigned char, unsigned short, unsigned int, unsigned long>::test();
+}
+
+// --------------------------------------------------------------------------
 void test_read_array () {
 
-  persistent::fix_list<int64_t, 5> a("a");
+  persistent::prop::fix_list<int64_t, 5> a("a");
   std::istringstream is(build_xml("<a><ol><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li></ol></a>"));
   persistent::io::read_xml(is, a);
 
@@ -56,7 +104,7 @@ void test_read_array () {
 // --------------------------------------------------------------------------
 void test_read_vector () {
 
-  persistent::list<int64_t> v("v");
+  persistent::prop::list<int64_t> v("v");
   std::istringstream is(build_xml("<v><ol><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li></ol></v>"));
   persistent::io::read_xml(is, v);
 
@@ -66,7 +114,7 @@ void test_read_vector () {
 
 // --------------------------------------------------------------------------
 void test_read_1 () {
-  persistent::int64 i("i");
+  persistent::prop::int64 i("i");
   std::istringstream is(build_xml("<i>4711</i>"));
   persistent::io::read_xml(is, i);
 
@@ -79,7 +127,7 @@ void test_read_1 () {
 // --------------------------------------------------------------------------
 void test_read_2 () {
 
-  persistent::prop<test_int64> t1("t");
+  persistent::prop::type<test_int64> t1("t");
   std::istringstream is(build_xml("<t><i>4711</i><j>815</j></t>"));
   persistent::io::read_xml(is, t1);
 
@@ -92,7 +140,7 @@ void test_read_2 () {
 
 // --------------------------------------------------------------------------
 void test_read_3 () {
-  persistent::prop<test_int64> t1("t");
+  persistent::prop::type<test_int64> t1("t");
   std::istringstream is(build_xml("<t><i>4711</i></t>"));
   persistent::io::read_xml(is, t1);
 
@@ -105,7 +153,7 @@ void test_read_3 () {
 
 // --------------------------------------------------------------------------
 void test_read_4 () {
-  persistent::prop<test_int64> t1("t");
+  persistent::prop::type<test_int64> t1("t");
   std::istringstream is(build_xml(" \n \t <t> \n \t <i> \n \t \n \t 4711 \n \t </i> \n \t </t> \n \t "));
   persistent::io::read_xml(is, t1);
 
@@ -118,7 +166,7 @@ void test_read_4 () {
 
 // --------------------------------------------------------------------------
 void test_read_5 () {
-  persistent::prop<test2> t2("t2");
+  persistent::prop::type<test2> t2("t2");
   std::istringstream is(build_xml("<t2><i1>815</i1><t1><i>911</i><j>203</j></t1><i2>4711</i2></t2>"));
   persistent::io::read_xml(is, t2);
 
@@ -130,7 +178,7 @@ void test_read_5 () {
 
 // --------------------------------------------------------------------------
 void test_read_6 () {
-  persistent::prop<test_int64> t1("t1");
+  persistent::prop::type<test_int64> t1("t1");
   std::istringstream is(build_xml("<t1><i>4711</i><k>815</k></t1>"));
   try {
     persistent::io::read_xml(is, t1);
@@ -146,7 +194,7 @@ void test_read_6 () {
 
 // --------------------------------------------------------------------------
 void test_read_7 () {
-  persistent::prop<test3> t3("t3");
+  persistent::prop::type<test3> t3("t3");
   std::istringstream is(build_xml("<t2><v><ol><li><i>1</i><j>2</j></li><li><i>3</i><j>4</j></li><li><i>5</i><j>6</j></li></ol></v></t2>"));
   persistent::io::read_xml(is, t3);
 
@@ -217,7 +265,7 @@ void test_read_11 () {
 
 // --------------------------------------------------------------------------
 void test_write_1 () {
-  persistent::int64 i("i", 4711);
+  persistent::prop::int64 i("i", 4711);
   std::ostringstream os;
   persistent::io::write_xml(os, i, false);
 
@@ -279,7 +327,7 @@ void test_write_6 () {
 // --------------------------------------------------------------------------
 void test_write_array () {
 
-  persistent::fix_list<int64_t, 5> a("a", {1, 2, 3, 4, 5});
+  persistent::prop::fix_list<int64_t, 5> a("a", {1, 2, 3, 4, 5});
   std::ostringstream os;
   persistent::io::write_xml(os, a, false);
 
@@ -289,7 +337,7 @@ void test_write_array () {
 // --------------------------------------------------------------------------
 void test_write_vector () {
 
-  persistent::list<int64_t> v("v", {1, 2, 3, 4, 5});
+  persistent::prop::list<int64_t> v("v", {1, 2, 3, 4, 5});
   std::ostringstream os;
   persistent::io::write_xml(os, v, false);
   auto expected = build_xml("<v><ol><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li></ol></v>");
@@ -300,6 +348,7 @@ void test_write_vector () {
 void test_main (const testing::start_params& params) {
   testing::log_info("Running " __FILE__);
   run_test(test_read_empty);
+  run_test(test_read_all_basic_types);
   run_test(test_read_array);
   run_test(test_read_vector);
   run_test(test_read_1);

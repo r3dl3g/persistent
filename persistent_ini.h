@@ -244,10 +244,10 @@ namespace persistent {
     };
 
     template<typename T>
-    struct read_property_t<ini_parser_context, T> {
-      static bool from (ini_parser_context& in, prop<T>& t) {
-        in.path.push(t.name());
-        const bool found = read_any(in, t());
+    struct read_named_property_t<ini_parser_context, T> {
+      static bool from (ini_parser_context& in, T& t) {
+        in.path.push(get_property_name(t));
+        const bool found = read_any(in, get_property_value(t));
         in.path.pop();
         return found;
       }
@@ -292,7 +292,7 @@ namespace persistent {
 
     template<typename ... Types>
     struct read_tuple_t<ini_parser_context, Types...> {
-      static bool from (ini_parser_context& in, std::tuple<prop<Types>&...>& t) {
+      static bool from (ini_parser_context& in, std::tuple<Types&...> t) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
           in.path.push(index);
