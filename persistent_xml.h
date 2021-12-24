@@ -89,6 +89,9 @@ namespace persistent {
 
       static void write_struct_end (xml_formatter_context&) {
       }
+
+      static void write_empty_ptr (xml_formatter_context&) {
+      }
     };
 
     template<typename T>
@@ -220,6 +223,10 @@ namespace persistent {
         in.check_token("</" + key + ">");
       }
 
+      static bool is_ptr_empty (xml_parser_context& in) {
+        const std::string& token = in.next_token();
+        return in.is.good() && (token.compare(0, 2, "</") == 0);
+      }
     };
 
     template<typename T>

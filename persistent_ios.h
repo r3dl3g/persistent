@@ -75,6 +75,10 @@ namespace persistent {
       static void write_struct_end (std::ostream& os) {
         os << '}';
       }
+
+      static void write_empty_ptr (std::ostream&) {
+      }
+
     };
 
     template<>
@@ -214,6 +218,10 @@ namespace persistent {
       static void write_struct_end (ios_formatter_context& out) {
         out.endl().dec().fill().os << '}';
       }
+
+      static void write_empty_ptr (ios_formatter_context&) {
+      }
+
     };
 
     template<typename T>
@@ -306,6 +314,13 @@ namespace persistent {
         char delim = is.peek();
         return (delim == '[') || (delim == '{') || (delim == ']') || (delim == '}') || (delim == ':') || (delim == ',');
       }
+
+      static bool is_ptr_empty (std::istream& is) {
+        is >> std::ws;
+        char delim = is.peek();
+        return (delim == ']') || (delim == '}') || (delim == ',');
+      }
+
     };
 
     template<typename T>

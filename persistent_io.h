@@ -73,6 +73,8 @@ namespace persistent {
 
       static void write_struct_start (Target&) {}
       static void write_struct_end (Target&) {}
+
+      static void write_empty_ptr (Target&) {}
     };
 
     /**
@@ -204,13 +206,34 @@ namespace persistent {
     template<typename Target, typename T>
     struct write_shared_t {
       static void to (Target& out, const std::shared_ptr<T>& t) {
-        write_any_t<Target, T>::to(out, *t.get());
+        if (t) {
+          write_any_t<Target, T>::to(out, *t.get());
+        } else {
+          formatter<Target>::write_empty_ptr(out);
+        }
       }
     };
 
     template<typename Target, typename T>
     void write_shared (Target& out, const std::shared_ptr<T>& t) {
       write_shared_t<Target, T>::to(out, t);
+    }
+
+    /// write unique ptr
+    template<typename Target, typename T>
+    struct write_unique_t {
+      static void to (Target& out, const std::unique_ptr<T>& t) {
+        if (t) {
+          write_any_t<Target, T>::to(out, *t.get());
+        } else {
+          formatter<Target>::write_empty_ptr(out);
+        }
+      }
+    };
+
+    template<typename Target, typename T>
+    void write_unique (Target& out, const std::unique_ptr<T>& t) {
+      write_unique_t<Target, T>::to(out, t);
     }
 
     /// detect attribute
@@ -253,6 +276,14 @@ namespace persistent {
       }
     };
 
+    /// detect unique
+    template<typename Target, typename T>
+    struct write_any_t<Target, std::unique_ptr<T>> {
+      static void to (Target& out, const std::unique_ptr<T>& t) {
+        write_unique(out, t);
+      }
+    };
+
     /// convenience helper
     template<typename Target, typename T>
     void inline write (Target& out, const T& t) {
@@ -280,6 +311,8 @@ namespace persistent {
 
       static bool read_next_struct_element (Source&, std::string&) { return true; }
       static void read_struct_element_finish (Source&, const std::string&) {}
+
+      static bool is_ptr_empty (Source&) { return true; }
     };
 
     /// read value
@@ -426,6 +459,9 @@ namespace persistent {
     template<typename Source, typename T>
     struct read_shared_t {
       static bool from (Source& in, std::shared_ptr<T>& v) {
+        if (parser<Source>::is_ptr_empty(in)) {
+          return false;
+        }
         if (!v) {
           v = std::make_shared<T>();
         }
@@ -437,6 +473,26 @@ namespace persistent {
     template<typename Source, typename T>
     inline bool read_shared (Source& in, std::shared_ptr<T>& t) {
       return read_shared_t<Source, T>::from(in, t);
+    }
+
+    /// read unique
+    template<typename Source, typename T>
+    struct read_unique_t {
+      static bool from (Source& in, std::unique_ptr<T>& v) {
+        if (parser<Source>::is_ptr_empty(in)) {
+          return false;
+        }
+        if (!v) {
+          v = std::make_unique<T>();
+        }
+        T& t = *v;
+        return read_any(in, t);
+      }
+    };
+
+    template<typename Source, typename T>
+    inline bool read_unique (Source& in, std::unique_ptr<T>& t) {
+      return read_unique_t<Source, T>::from(in, t);
     }
 
     /// detect attribute
@@ -477,6 +533,14 @@ namespace persistent {
     struct read_any_t<Source, std::shared_ptr<T>> {
       static inline bool from (Source& in, std::shared_ptr<T>& t) {
         return read_shared(in, t);
+      }
+    };
+
+    /// detect unique
+    template<typename Source, typename T>
+    struct read_any_t<Source, std::unique_ptr<T>> {
+      static inline bool from (Source& in, std::unique_ptr<T>& t) {
+        return read_unique(in, t);
       }
     };
 

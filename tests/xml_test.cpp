@@ -167,7 +167,7 @@ void test_read_5 () {
   EXPECT_EQUAL(t2.i1, 815);
   EXPECT_EQUAL(t2.t1.i, 911);
   EXPECT_EQUAL(t2.t1.j, 203);
-  EXPECT_EQUAL(t2.i2, 4711);
+  EXPECT_EQUAL(*(t2.i2), 4711);
 }
 
 // --------------------------------------------------------------------------
@@ -285,7 +285,7 @@ void test_write_3 () {
   std::ostringstream os;
   io::write_xml(os, t2, false);
 
-  auto expected = build_xml("<i1>0</i1><t1><i>0</i><j>0</j></t1><i2>0</i2>");
+  auto expected = build_xml("<i1>0</i1><t1><i>0</i><j>0</j></t1><i2></i2>");
   EXPECT_EQUAL(os.str(), expected);
 }
 

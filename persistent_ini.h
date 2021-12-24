@@ -164,6 +164,10 @@ namespace persistent {
       static void write_list_end (ini_formatter_context& out) {
       }
 
+      static void write_empty_ptr (ini_formatter_context& out) {
+        out.print_path();
+        out.endl();
+      }
     };
 
     template<typename T>
@@ -219,6 +223,11 @@ namespace persistent {
         is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
       }
 
+      void skip_blank () {
+        while (::isblank(is.peek())) {
+          is.get();
+        }
+      }
     };
 
     template<>
@@ -240,6 +249,12 @@ namespace persistent {
       }
 
       static void read_struct_element_finish (ini_parser_context&, const std::string&) {}
+
+      static bool is_ptr_empty (ini_parser_context& in) {
+        in.skip_blank();
+        const char next = in.is.peek();
+        return (next == '\n') || (next == '\r');
+      }
 
     };
 

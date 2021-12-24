@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <memory>
 #include "persistent/persistent.h"
 
 using namespace persistent;
@@ -48,6 +49,8 @@ template<> constexpr std::pair<char const*, uint64_t>     get_test_data<uint64_t
 template<> constexpr std::pair<char const*, float>        get_test_data<float> ()        { return { "12345.12345", 12345.12345 }; }
 template<> constexpr std::pair<char const*, double>       get_test_data<double> ()       { return { "12345678.12345678", 12345678.12345678 }; }
 template<> inline    std::pair<char const*, std::string>  get_test_data<std::string> ()  { return { "Some text", "Some text" }; }
+template<> inline    std::pair<char const*, std::unique_ptr<int64_t>> get_test_data<std::unique_ptr<int64_t>> () { return { "-549755813887", std::make_unique<int64_t>(-549755813887) }; }
+template<> inline    std::pair<char const*, std::shared_ptr<int64_t>> get_test_data<std::shared_ptr<int64_t>> () { return { "-549755813886", std::make_shared<int64_t>(-549755813886) }; }
 
 // --------------------------------------------------------------------------
 struct test_int64 : private persistent_struct {
@@ -70,7 +73,7 @@ struct test2 : private persistent_struct {
 
   int64_t i1 = 0;
   test_int64 t1;
-  int64_t i2 = 0;
+  std::unique_ptr<int64_t> i2;
 
   auto attributes () {
     return std::make_tuple(attribute(i1, names::i1), attribute(t1, names::t1), attribute(i2, names::i2));

@@ -44,6 +44,10 @@ namespace persistent {
         out.os << std::quoted(key) << (out.beautify ? ": " : ":");
       }
 
+      static void write_empty_ptr (json_formatter_context& out) {
+        out.os << "null";
+      }
+
     };
 
     template<typename T>
@@ -114,6 +118,19 @@ namespace persistent {
       }
 
       static void read_struct_element_finish (json_parser_context&, const std::string&) {}
+
+      static bool is_ptr_empty (json_parser_context& in) {
+        in.is >> std::ws;
+        if (in.is.peek() != 'n') {
+          return false;
+        }
+        char n, u, l1, l2;
+        in.is >> n >> u >> l1 >> l2;
+        if ((n != 'n') || (u != 'u') || (l1 != 'l') || (l2 != 'l')) {
+          throw std::runtime_error(msg_fmt() << "Expected 'null' but got '" << n << u << l1 << l2 << "'");
+        }
+        return true;
+      }
 
     };
 

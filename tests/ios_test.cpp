@@ -160,7 +160,7 @@ void test_read_5 () {
   EXPECT_EQUAL(t2.i1, 815);
   EXPECT_EQUAL(t2.t1.i, 911);
   EXPECT_EQUAL(t2.t1.j, 203);
-  EXPECT_EQUAL(t2.i2, 4711);
+  EXPECT_EQUAL(*(t2.i2), 4711);
 }
 
 // --------------------------------------------------------------------------
@@ -280,7 +280,7 @@ void test_write_3 () {
   std::ostringstream os;
   io::write_stream(os, t2);
 
-  EXPECT_EQUAL(os.str(), "{i1:0,t1:{i:0,j:0},i2:0}");
+  EXPECT_EQUAL(os.str(), "{i1:0,t1:{i:0,j:0},i2:}");
 }
 
 // --------------------------------------------------------------------------

@@ -30,16 +30,14 @@ struct MyStruct : private persistent_struct {  // persistent structs must be sub
     , v(v_)
   {}
 
-  double d;                       // A simple C/C++ struct
+  double d;                       // simple primitiv members
   int i;
   std::string s;
   std::array<int, 5> a;
   std::vector<std::string> v;
 
-  template<typename T> using attr = persistent::attribute<T>;
-
   auto attributes () {            // Each persistent structs must provide an attributes method that returns a tuple with attributes of its members.
-    return std::make_tuple(attr(d, "d"), attr(i, "i"), attr(s, "s"), attr(a, "a"), attr(v, "v"));
+    return std::make_tuple(attribute(d, "d"), attribute(i, "i"), attribute(s, "s"), attribute(a, "a"), attribute(v, "v"));
   }
 
   const auto attributes () const {// For convenience use a const cast
@@ -87,18 +85,23 @@ void test_read () {
 // --------------------------------------------------------------------------
 struct MyStruct2 : private persistent_struct {   // make your struct a subclass of persistent_struct.
 
-  MyStruct2 (int64_t i_ = {}, const std::string s_ = {})
-    : i(i_)
-    , s(s_)
+  MyStruct2 (const MyStruct s_ = {},
+             const std::vector<int> v1_ = {},
+             const std::vector<MyStruct> v2_ = {},
+             const std::shared_ptr<MyStruct> p_ = {})
+    : s(s_)
+    , v1(v1_)
+    , v2(v2_)
+    , p(p_)
   {}
 
-  int64_t i;                                     // A simple int64 properties.
-  std::string s;                                 // A string
-
-  template<typename T> using attr = persistent::attribute<T>;
+  MyStruct s;                                    // A complex member
+  std::vector<int> v1;                           // A vector of primitiv types
+  std::vector<MyStruct> v2;                      // A vector of complex types
+  std::shared_ptr<MyStruct> p;                   // A shared pointer
 
   auto attributes () {                           // give your properties a name
-    return std::make_tuple(attr(i, "i"), attr(s, "s"));
+    return std::make_tuple(attribute(s, "s"), attribute(v1, "v1"), attribute(v2, "v2"), attribute(p, "p"));
   }
 
   const auto attributes () const {
@@ -110,12 +113,18 @@ struct MyStruct2 : private persistent_struct {   // make your struct a subclass 
 // --------------------------------------------------------------------------
 void test_write2 () {
 
-  MyStruct2 s{4711, "Some other text"};
+  MyStruct2 s{{1.234, 4711, "Some text", {1, 2, 3, 4, 5}, {"One", "Two", "Three"}},
+              {3, 4, 5},
+              {{1.1, 2, "A", {1, 2, 3}, {"A", "B", "C"}}}};
 
   std::ostringstream os;
   persistent::io::write_json(os, s, false);
 
-  EXPECT_EQUAL(os.str(), "{\"i\":\"4711\",\"s\":\"Some other text\"}");
+  EXPECT_EQUAL(os.str(), "{\"s\":{\"d\":\"1.234\",\"i\":\"4711\",\"s\":\"Some text\",\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"],\"v\":[\"One\",\"Two\",\"Three\"]}"
+                         ",\"v1\":[\"3\",\"4\",\"5\"]"
+                         ",\"v2\":[{\"d\":\"1.1\",\"i\":\"2\",\"s\":\"A\",\"a\":[\"1\",\"2\",\"3\",\"0\",\"0\"]"
+                         ",\"v\":[\"A\",\"B\",\"C\"]}]"
+                         ",\"p\":null}");
 }
 
 // --------------------------------------------------------------------------
@@ -123,11 +132,63 @@ void test_read2 () {
 
   MyStruct2 s;
 
-  std::istringstream is("{\"i\":\"4711\",\"s\":\"Some other text\"}");
+  std::istringstream is("{\"s\":{\"d\":\"1.234\",\"i\":\"4711\",\"s\":\"Some text\",\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"],\"v\":[\"One\",\"Two\",\"Three\"]}"
+                        ",\"v1\":[\"3\",\"4\",\"5\"]"
+                        ",\"v2\":[{\"d\":\"1.1\",\"i\":\"2\",\"s\":\"A\",\"a\":[\"1\",\"2\",\"3\",\"0\",\"0\"]"
+                        ",\"v\":[\"A\",\"B\",\"C\"]}]"
+                        ",\"p\":{}}");
   persistent::io::read_json(is, s);
 
-  EXPECT_EQUAL(s.i, 4711);
-  EXPECT_EQUAL(s.s, "Some other text");
+  EXPECT_EQUAL(s.s.d, 1.234);
+  EXPECT_EQUAL(s.s.i, 4711);
+  EXPECT_EQUAL(s.s.s, "Some text");
+  std::array<int, 5> expected_a{1, 2, 3, 4, 5};
+  EXPECT_EQUAL(s.s.a, expected_a);
+  std::vector<std::string> expected_v{"One", "Two", "Three"};
+  EXPECT_EQUAL(s.s.v, expected_v);
+
+  std::vector<int> expected_v1{3, 4, 5};
+  EXPECT_EQUAL(s.v1, expected_v1);
+
+  EXPECT_EQUAL(s.v2.size(), 1);
+  EXPECT_EQUAL(s.v2[0].d, 1.1);
+  EXPECT_EQUAL(s.v2[0].i, 2);
+  EXPECT_EQUAL(s.v2[0].s, "A");
+  std::array<int, 5> expected_a2{1, 2, 3, 0, 0};
+  EXPECT_EQUAL(s.v2[0].a, expected_a2);
+  std::vector<std::string> expected_v2{"A", "B", "C"};
+  EXPECT_EQUAL(s.v2[0].v, expected_v2);
+
+  EXPECT_TRUE((bool)s.p);
+  EXPECT_EQUAL(s.p->d, 0);
+  EXPECT_EQUAL(s.p->i, 0);
+  EXPECT_TRUE(s.p->s.empty());
+  std::array<int, 5> expected_a3{0, 0, 0, 0, 0};
+  EXPECT_EQUAL(s.p->a, expected_a3);
+  EXPECT_TRUE(s.p->v.empty());
+}
+
+// --------------------------------------------------------------------------
+void test_read3 () {
+
+  MyStruct2 s;
+
+  std::istringstream is("{\"s\":{}"
+                        ",\"v1\":[]"
+                        ",\"v2\":[]"
+                        ",\"p\":null}");
+  persistent::io::read_json(is, s);
+
+  EXPECT_EQUAL(s.s.d, 0);
+  EXPECT_EQUAL(s.s.i, 0);
+  EXPECT_TRUE(s.s.s.empty());
+  std::array<int, 5> expected_a{0, 0, 0, 0, 0};
+  EXPECT_EQUAL(s.s.a, expected_a);
+  EXPECT_TRUE(s.s.v.empty());
+  EXPECT_TRUE(s.v1.empty());
+  EXPECT_TRUE(s.v2.empty());
+  EXPECT_FALSE((bool)s.p);
+
 }
 
 // --------------------------------------------------------------------------
@@ -138,6 +199,7 @@ void test_main (const testing::start_params& params) {
 
   run_test(test_write2);
   run_test(test_read2);
+  run_test(test_read3);
 }
 
 // --------------------------------------------------------------------------
