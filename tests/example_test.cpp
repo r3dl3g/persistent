@@ -40,8 +40,8 @@ struct MyStruct : private persistent_struct {  // persistent structs must be sub
     return std::make_tuple(attribute(d, "d"), attribute(i, "i"), attribute(s, "s"), attribute(a, "a"), attribute(v, "v"));
   }
 
-  const auto attributes () const {// For convenience use a const cast
-    return (const_cast<MyStruct&>(*this)).attributes();
+  const auto attributes () const {// For convenience we use a const cast. Optional we can use the identical code as in the non const method.
+    return (const_cast<MyStruct*>(this))->attributes();
   }
 
 };
@@ -105,7 +105,7 @@ struct MyStruct2 : private persistent_struct {   // make your struct a subclass 
   }
 
   const auto attributes () const {
-    return (const_cast<MyStruct2&>(*this)).attributes();
+    return (const_cast<MyStruct2*>(this))->attributes();
   }
 
 };

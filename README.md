@@ -131,14 +131,12 @@ struct MyStruct : private persistent_struct {  // persistent structs must be sub
   std::array<int, 5> a;
   std::vector<std::string> v;
 
-  template<typename T> using attr = persistent::attribute<T>;
-
   auto attributes () {            // Each persistent structs must provide an attributes method that returns a tuple with attributes of its members.
     return std::make_tuple(attribute(d, "d"), attribute(i, "i"), attribute(s, "s"), attribute(a, "a"), attribute(v, "v"));
   }
 
-  const auto attributes () const {// For convenience we use a const cast. Optional we can use the identical code as in teh non const method.
-    return (const_cast<MyStruct&>(*this)).attributes();
+  const auto attributes () const {// For convenience we use a const cast. Optional we can use the identical code as in the non const method.
+    return (const_cast<MyStruct*>(this))->attributes();
   }
 
 };
@@ -182,6 +180,4 @@ Write it to a xml format:
   persistent::io::read_json(is, s);
 
 ```
-
-# Complex structurs
 
