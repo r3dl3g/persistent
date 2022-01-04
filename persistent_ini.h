@@ -262,7 +262,8 @@ namespace persistent {
     struct read_attribute_t<ini_parser_context, T> {
       static bool from (ini_parser_context& in, T& t) {
         in.path.push(get_property_name(t));
-        const bool found = read_any(in, get_property_value(t));
+        typename T::type v = {};
+        const bool found = read_any(in, set_property_value(t));
         in.path.pop();
         return found;
       }

@@ -37,11 +37,7 @@ struct MyStruct : private persistent_struct {  // persistent structs must be sub
   std::vector<std::string> v;
 
   auto attributes () {            // Each persistent structs must provide an attributes method that returns a tuple with attributes of its members.
-    return std::make_tuple(attribute(d, "d"), attribute(i, "i"), attribute(s, "s"), attribute(a, "a"), attribute(v, "v"));
-  }
-
-  const auto attributes () const {// For convenience we use a const cast. Optional we can use the identical code as in the non const method.
-    return (const_cast<MyStruct*>(this))->attributes();
+    return make_attributes(attribute(d, "d"), attribute(i, "i"), attribute(s, "s"), attribute(a, "a"), attribute(v, "v"));
   }
 
 };
@@ -101,11 +97,7 @@ struct MyStruct2 : private persistent_struct {   // make your struct a subclass 
   std::shared_ptr<MyStruct> p;                   // A shared pointer
 
   auto attributes () {                           // give your properties a name
-    return std::make_tuple(attribute(s, "s"), attribute(v1, "v1"), attribute(v2, "v2"), attribute(p, "p"));
-  }
-
-  const auto attributes () const {
-    return (const_cast<MyStruct2*>(this))->attributes();
+    return make_attributes(attribute(s, "s"), attribute(v1, "v1"), attribute(v2, "v2"), attribute(p, "p"));
   }
 
 };
@@ -169,7 +161,7 @@ void test_read2 () {
 }
 
 // --------------------------------------------------------------------------
-void test_read3 () {
+void test_read2a () {
 
   MyStruct2 s;
 
@@ -192,6 +184,119 @@ void test_read3 () {
 }
 
 // --------------------------------------------------------------------------
+struct MyStruct3 {
+
+  std::string str;
+  int i;
+
+};
+
+namespace persistent {
+
+  template <>
+  struct is_persistent<MyStruct3> : std::true_type {};
+
+  template<>
+  auto attributes (MyStruct3& t) {
+    return make_attributes(attribute(t.str, "str"), attribute(t.i, "i"));
+  }
+
+}
+
+// --------------------------------------------------------------------------
+void test_write3 () {
+
+  MyStruct3 s = { "Some text", 4711 };
+
+  std::ostringstream os;
+  persistent::io::write_json(os, s, false);
+
+  EXPECT_EQUAL(os.str(), "{\"str\":\"Some text\",\"i\":\"4711\"}");
+}
+
+// --------------------------------------------------------------------------
+void test_read3 () {
+
+  MyStruct3 s;
+
+  std::istringstream is("{\"str\":\"Some text\",\"i\":\"4711\"}");
+  persistent::io::read_json(is, s);
+
+  EXPECT_EQUAL(s.str, "Some text");
+  EXPECT_EQUAL(s.i, 4711);
+}
+
+// --------------------------------------------------------------------------
+struct MyStruct4 {
+
+  MyStruct4 (const std::string& str_ = {}, int i_ = {})
+    : str(str_)
+    , i(i_)
+  {}
+
+  const std::string& string () const {
+    return str;
+  }
+
+  int integer () const {
+    return i;
+  }
+
+  std::string& set_string () {
+    return str;
+  }
+
+  int& set_integer () {
+    return i;
+  }
+
+private:
+  std::string str;
+  int i;
+
+};
+
+namespace persistent {
+
+  template <>
+  struct is_persistent<MyStruct4> : std::true_type {};
+
+  template<>
+  auto attributes (MyStruct4& t) {
+    return make_attributes(setter(t.set_string(), "str"), setter(t.set_integer(), "i"));
+  }
+
+  template<>
+  auto attributes (const MyStruct4& t) {
+    return make_attributes(getter(t.string(), "str"), getter(t.integer(), "i"));
+  }
+
+}
+
+// --------------------------------------------------------------------------
+void test_write4 () {
+
+  MyStruct4 s = { "Some text", 4711 };
+
+  std::ostringstream os;
+  persistent::io::write_json(os, s, false);
+
+  EXPECT_EQUAL(os.str(), "{\"str\":\"Some text\",\"i\":\"4711\"}");
+}
+
+//// --------------------------------------------------------------------------
+void test_read4 () {
+
+  MyStruct4 s;
+
+  std::istringstream is("{\"str\":\"Some text\",\"i\":\"4711\"}");
+  persistent::io::read_json(is, s);
+
+  EXPECT_EQUAL(s.string(), "Some text");
+  EXPECT_EQUAL(s.integer(), 4711);
+}
+
+// --------------------------------------------------------------------------
 void test_main (const testing::start_params& params) {
   testing::log_info("Running " __FILE__);
   run_test(test_write);
@@ -199,7 +304,13 @@ void test_main (const testing::start_params& params) {
 
   run_test(test_write2);
   run_test(test_read2);
+  run_test(test_read2a);
+
+  run_test(test_write3);
   run_test(test_read3);
+
+  run_test(test_write4);
+  run_test(test_read4);
 }
 
 // --------------------------------------------------------------------------

@@ -29,6 +29,7 @@
 // Project includes
 //
 #include "persistent.h"
+#include "util/variadic_util.h"
 
 
 namespace persistent {
@@ -244,6 +245,14 @@ namespace persistent {
       }
     };
 
+    /// detect getter
+    template<typename Target, typename T>
+    struct write_any_t<Target, getter<T>> {
+      static void to (Target& out, const getter<T>& t) {
+        write_attribute(out, t);
+      }
+    };
+
     /// detect vector
     template<typename Target, typename T>
     struct write_any_t<Target, std::vector<T>> {
@@ -262,7 +271,7 @@ namespace persistent {
 
     /// detect struct
     template<typename Target, typename T>
-    struct write_any_t<Target, T, typename std::enable_if<std::is_base_of<persistent_struct, T>::value>::type> {
+    struct write_any_t<Target, T, typename std::enable_if<is_persistent<T>::value>::type> {
       static void to (Target& out, const T& t) {
         write_tuple(out, persistent::attributes(t));
       }
@@ -349,7 +358,7 @@ namespace persistent {
         std::string name;
         try {
           parser<Source>::read_property_init(in, name);
-          const bool found = read_any(in, get_property_value(t));
+          const bool found = read_any(in, set_property_value(t));
           parser<Source>::read_property_finish(in, name);
           return found;
         } catch (std::exception& ex) {
@@ -420,7 +429,7 @@ namespace persistent {
         if (!found) {
           auto& f = std::get<I - 1>(t);
           if (name == get_property_name(f)) {
-            found |= read_any(in, get_property_value(f));
+            found |= read_any(in, set_property_value(f));
           }
         }
         return found;
@@ -503,6 +512,14 @@ namespace persistent {
       }
     };
 
+    /// detect setter
+    template<typename Source, typename T>
+    struct read_any_t<Source, setter<T>> {
+      static inline bool from (Source& in, setter<T>& t) {
+        return read_attribute(in, t);
+      }
+    };
+
     /// detect vector
     template<typename Source, typename T>
     struct read_any_t<Source, std::vector<T>> {
@@ -521,7 +538,7 @@ namespace persistent {
 
     /// detect struct
     template<typename Source, typename T>
-    struct read_any_t<Source, T, typename std::enable_if<std::is_base_of<persistent_struct, T>::value>::type> {
+    struct read_any_t<Source, T, typename std::enable_if<is_persistent<T>::value>::type> {
       static inline bool from (Source& in, T& t) {
         auto attr = persistent::attributes(t);
         return read_tuple(in, attr);

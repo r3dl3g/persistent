@@ -62,10 +62,6 @@ struct test_int64 : private persistent_struct {
     return make_attributes(attribute(i, names::i), attribute(j, names::j));
   }
 
-  auto attributes () const {
-    return (const_cast<test_int64&>(*this)).attributes();
-  }
-
 };
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -76,11 +72,7 @@ struct test2 : private persistent_struct {
   std::unique_ptr<int64_t> i2;
 
   auto attributes () {
-    return std::make_tuple(attribute(i1, names::i1), attribute(t1, names::t1), attribute(i2, names::i2));
-  }
-
-  const auto attributes () const {
-    return (const_cast<test2&>(*this)).attributes();
+    return make_attributes(attribute(i1, names::i1), attribute(t1, names::t1), attribute(i2, names::i2));
   }
 
 };
@@ -116,11 +108,7 @@ struct test4 : private persistent_struct {
   {}
 
   auto attributes () {
-    return std::make_tuple(attribute(i, names::i), attribute(l, names::i));
-  }
-
-  const auto attributes () const {
-    return (const_cast<test4&>(*this)).attributes();
+    return make_attributes(attribute(i, names::i), attribute(l, names::i));
   }
 
   int64_t i;
@@ -135,11 +123,7 @@ struct test5 : private persistent_struct {
   {}
 
   auto attributes () {
-    return std::make_tuple(attribute(i, names::i), attribute(l, names::i));
-  }
-
-  const auto attributes () const {
-    return (const_cast<test5&>(*this)).attributes();
+    return make_attributes(attribute(i, names::i), attribute(l, names::i));
   }
 
   std::string i;
@@ -154,11 +138,7 @@ struct test6 : private persistent_struct {
   {}
 
   auto attributes () {
-    return std::make_tuple(attribute(l, names::i), attribute(i, names::i));
-  }
-
-  const auto attributes () const {
-    return (const_cast<test6&>(*this)).attributes();
+    return make_attributes(attribute(l, names::i), attribute(i, names::i));
   }
 
   std::vector<std::string> l;
