@@ -42,7 +42,7 @@ void test_read_prop_type () {
 
   T value = {};
   std::istringstream is(str);
-  attribute at(value, "i");
+  auto at = attribute(value, "i");
   io::read_json(is, at);
 
   EXPECT_EQUAL(value, expected.second, " for type ", typeid(T).name(), " with source ", str);
@@ -73,7 +73,7 @@ void test_read_array () {
 
   std::array<int64_t, 5> a;
   std::istringstream is("\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"]");
-  attribute at(a, "a");
+  auto at = attribute(a, "a");
   io::read_json(is, at);
 
   std::array<int64_t, 5> expected = {1, 2, 3, 4, 5};
@@ -84,7 +84,7 @@ void test_read_vector () {
 
   std::vector<int64_t> v;
   std::istringstream is("\"v\":['1','2','3','4','5']");
-  attribute at(v, "v");
+  auto at = attribute(v, "v");
   io::read_json(is, at);
 
   std::vector<int64_t> expected = {1, 2, 3, 4, 5};
@@ -121,7 +121,7 @@ void test_read_3 () {
 
   int64_t i = 0;
   std::istringstream is("\"i\":\"4711\"");
-  attribute at(i, "i");
+  auto at = attribute(i, "i");
   io::read_json(is, at);
 
   EXPECT_EQUAL(i, 4711);

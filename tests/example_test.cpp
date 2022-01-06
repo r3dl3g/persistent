@@ -128,7 +128,7 @@ void test_read2 () {
                         ",\"v1\":[\"3\",\"4\",\"5\"]"
                         ",\"v2\":[{\"d\":\"1.1\",\"i\":\"2\",\"s\":\"A\",\"a\":[\"1\",\"2\",\"3\",\"0\",\"0\"]"
                         ",\"v\":[\"A\",\"B\",\"C\"]}]"
-                        ",\"p\":{}}");
+                        ",\"p\":{\"d\":\"0\",\"i\":\"0\",\"s\":\"\",\"a\":[],\"v\":[]}}");
   persistent::io::read_json(is, s);
 
   EXPECT_EQUAL(s.s.d, 1.234);
@@ -234,20 +234,20 @@ struct MyStruct4 {
     , i(i_)
   {}
 
-  const std::string& string () const {
+  const std::string& get_string () const {
     return str;
   }
 
-  int integer () const {
+  int get_integer () const {
     return i;
   }
 
-  std::string& set_string () {
-    return str;
+  void set_string (const std::string& s) {
+    str = s;
   }
 
-  int& set_integer () {
-    return i;
+  void set_integer (int i_) {
+    i = i_;
   }
 
 private:
@@ -263,12 +263,12 @@ namespace persistent {
 
   template<>
   auto attributes (MyStruct4& t) {
-    return make_attributes(setter(t.set_string(), "str"), setter(t.set_integer(), "i"));
+    return make_attributes(setter(t, &MyStruct4::set_string, "str"), setter(t, &MyStruct4::set_integer, "i"));
   }
 
   template<>
   auto attributes (const MyStruct4& t) {
-    return make_attributes(getter(t.string(), "str"), getter(t.integer(), "i"));
+    return make_attributes(getter(t.get_string(), "str"), getter(t.get_integer(), "i"));
   }
 
 }
@@ -292,8 +292,8 @@ void test_read4 () {
   std::istringstream is("{\"str\":\"Some text\",\"i\":\"4711\"}");
   persistent::io::read_json(is, s);
 
-  EXPECT_EQUAL(s.string(), "Some text");
-  EXPECT_EQUAL(s.integer(), 4711);
+  EXPECT_EQUAL(s.get_string(), "Some text");
+  EXPECT_EQUAL(s.get_integer(), 4711);
 }
 
 // --------------------------------------------------------------------------

@@ -33,7 +33,7 @@ void test_read_empty () {
 
   test_int64 t1;
   std::istringstream is(build_xml("<t></t>"));
-  attribute at(t1, "t");
+  auto at = attribute(t1, "t");
   io::read_xml(is, at);
 
   EXPECT_EQUAL(t1.i, 0);
@@ -52,7 +52,7 @@ void test_read_prop_type () {
 
   T value = {};
   std::istringstream is(build_xml(str));
-  attribute at(value, "i");
+  auto at = attribute(value, "i");
   io::read_xml(is, at);
 
   EXPECT_EQUAL(value, expected.second, " for type ", typeid(T).name(), " with source ", str);
@@ -83,7 +83,7 @@ void test_read_array () {
 
   std::array<int64_t, 5> a;
   std::istringstream is(build_xml("<a><ol><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li></ol></a>"));
-  attribute at(a, "a");
+  auto at = attribute(a, "a");
   io::read_xml(is, at);
 
   std::array<int64_t, 5> expected = {1, 2, 3, 4, 5};
@@ -94,7 +94,7 @@ void test_read_vector () {
 
   std::vector<int64_t> v;
   std::istringstream is(build_xml("<v><ol><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li></ol></v>"));
-  attribute at(v, "v");
+  auto at = attribute(v, "v");
   io::read_xml(is, at);
 
   std::vector<int64_t> expected = {1, 2, 3, 4, 5};
@@ -105,7 +105,7 @@ void test_read_vector () {
 void test_read_1 () {
   int64_t i= 0;
   std::istringstream is(build_xml("<i>4711</i>"));
-  attribute at(i, "i");
+  auto at = attribute(i, "i");
   io::read_xml(is, at);
 
   EXPECT_EQUAL(i, 4711);
@@ -119,7 +119,7 @@ void test_read_2 () {
 
   test_int64 t1;
   std::istringstream is(build_xml("<t><i>4711</i><j>815</j></t>"));
-  attribute at(t1, "t");
+  auto at = attribute(t1, "t");
   io::read_xml(is, at);
 
   EXPECT_EQUAL(t1.i, 4711);
@@ -133,7 +133,7 @@ void test_read_2 () {
 void test_read_3 () {
   test_int64 t1;
   std::istringstream is(build_xml("<t><i>4711</i></t>"));
-  attribute at(t1, "t");
+  auto at = attribute(t1, "t");
   io::read_xml(is, at);
 
   EXPECT_EQUAL(t1.i, 4711);
@@ -147,7 +147,7 @@ void test_read_3 () {
 void test_read_4 () {
   test_int64 t1;
   std::istringstream is(build_xml(" \n \t <t> \n \t <i> \n \t \n \t 4711 \n \t </i> \n \t </t> \n \t "));
-  attribute at(t1, "t");
+  auto at = attribute(t1, "t");
   io::read_xml(is, at);
 
   EXPECT_EQUAL(t1.i, 4711);
@@ -161,7 +161,7 @@ void test_read_4 () {
 void test_read_5 () {
   test2 t2;
   std::istringstream is(build_xml("<t2><i1>815</i1><t1><i>911</i><j>203</j></t1><i2>4711</i2></t2>"));
-  attribute at(t2, "t2");
+  auto at = attribute(t2, "t2");
   io::read_xml(is, at);
 
   EXPECT_EQUAL(t2.i1, 815);
@@ -175,7 +175,7 @@ void test_read_6 () {
   test_int64 t1;
   std::istringstream is(build_xml("<t1><i>4711</i><k>815</k></t1>"));
   try {
-    attribute at(t1, "t1");
+    auto at = attribute(t1, "t1");
     io::read_xml(is, at);
     EXPECT_FALSE("Exception expected");
   } catch (std::exception& ex) {
@@ -191,7 +191,7 @@ void test_read_6 () {
 void test_read_7 () {
   test3 t3;
   std::istringstream is(build_xml("<t2><v><ol><li><i>1</i><j>2</j></li><li><i>3</i><j>4</j></li><li><i>5</i><j>6</j></li></ol></v></t2>"));
-  attribute at(t3, "t3");
+  auto at = attribute(t3, "t3");
   io::read_xml(is, at);
 
   EXPECT_EQUAL(t3.v().size(), 3);

@@ -262,8 +262,21 @@ namespace persistent {
     struct read_attribute_t<ini_parser_context, T> {
       static bool from (ini_parser_context& in, T& t) {
         in.path.push(get_property_name(t));
+        const bool found = read_any(in, access_property_value(t));
+        in.path.pop();
+        return found;
+      }
+    };
+
+    template<typename T>
+    struct read_setter_t<ini_parser_context, T> {
+      static bool from (ini_parser_context& in, T& t) {
+        in.path.push(get_property_name(t));
         typename T::type v = {};
-        const bool found = read_any(in, set_property_value(t));
+        bool found = false;
+        if (found = read_any(in, v)) {
+          set_property_value(t, std::move(v));
+        }
         in.path.pop();
         return found;
       }

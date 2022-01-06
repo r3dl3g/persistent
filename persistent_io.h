@@ -239,16 +239,16 @@ namespace persistent {
 
     /// detect attribute
     template<typename Target, typename T>
-    struct write_any_t<Target, attribute<T>> {
-      static void to (Target& out, const attribute<T>& t) {
+    struct write_any_t<Target, detail::attribute<T>> {
+      static void to (Target& out, const detail::attribute<T>& t) {
         write_attribute(out, t);
       }
     };
 
     /// detect getter
     template<typename Target, typename T>
-    struct write_any_t<Target, getter<T>> {
-      static void to (Target& out, const getter<T>& t) {
+    struct write_any_t<Target, detail::getter<T>> {
+      static void to (Target& out, const detail::getter<T>& t) {
         write_attribute(out, t);
       }
     };
@@ -335,6 +335,12 @@ namespace persistent {
       return read_value_t<Source, T>::from(in, t);
     }
 
+    /// read property
+    template<typename Source, typename T>
+    struct read_property_t {
+      static bool from (Source& in, T& t);
+    };
+
     /**
     * read any type
     * type will be detected in later specializations
@@ -351,25 +357,30 @@ namespace persistent {
       return read_any_t<Source, T>::from(in, t);
     }
 
-    /// read property
+    /// detect attribute property
     template<typename Source, typename T>
-    struct read_attribute_t {
-      static bool from (Source& in, T& t) {
-        std::string name;
-        try {
-          parser<Source>::read_property_init(in, name);
-          const bool found = read_any(in, set_property_value(t));
-          parser<Source>::read_property_finish(in, name);
-          return found;
-        } catch (std::exception& ex) {
-          throw std::runtime_error(msg_fmt() << ex.what() << " for property '" << name << "'");
+    struct read_property_t<Source, detail::attribute<T>> {
+      static inline bool from (Source& in, detail::attribute<T>& t) {
+        return read_any(in, access_property_value(t));
+      }
+    };
+
+    /// detect setter property
+    template<typename Source, typename T>
+    struct read_property_t<Source, detail::setter<T>> {
+      static inline bool from (Source& in, detail::setter<T>& t) {
+        std::remove_const_t<std::remove_reference_t<T>> v = {};
+        if (read_any(in, v)) {
+          set_property_value(t, std::move(v));
+          return true;
         }
+        return false;
       }
     };
 
     template<typename Source, typename T>
-    inline bool read_attribute (Source& in, T& t) {
-      return read_attribute_t<Source, T>::from(in, t);
+    inline bool read_property (Source& in, T& t) {
+      return read_property_t<Source, T>::from(in, t);
     }
 
     /// read vector
@@ -429,7 +440,7 @@ namespace persistent {
         if (!found) {
           auto& f = std::get<I - 1>(t);
           if (name == get_property_name(f)) {
-            found |= read_any(in, set_property_value(f));
+            found |= read_property(in, f);
           }
         }
         return found;
@@ -462,6 +473,52 @@ namespace persistent {
     template<typename Source, typename ... Types>
     inline bool read_tuple (Source& in, std::tuple<Types...>& t) {
       return read_tuple_t<Source, Types...>::from(in, t);
+    }
+
+    /// read property as attribute
+    template<typename Source, typename T>
+    struct read_attribute_t {
+      static bool from (Source& in, T& t) {
+        std::string name;
+        try {
+          parser<Source>::read_property_init(in, name);
+          const bool found = read_any(in, access_property_value(t));
+          parser<Source>::read_property_finish(in, name);
+          return found;
+        } catch (std::exception& ex) {
+          throw std::runtime_error(msg_fmt() << ex.what() << " for property '" << name << "'");
+        }
+      }
+    };
+
+    template<typename Source, typename T>
+    inline bool read_attribute (Source& in, T& t) {
+      return read_attribute_t<Source, T>::from(in, t);
+    }
+
+    /// read property as setter
+    template<typename Source, typename T>
+    struct read_setter_t {
+      static bool from (Source& in, T& t) {
+        std::string name;
+        try {
+          parser<Source>::read_property_init(in, name);
+          typename T::type v = {};
+          bool found = false;
+          if (found = read_any(in, v)) {
+            set_property_value(t, std::move(v));
+          }
+          parser<Source>::read_property_finish(in, name);
+          return found;
+        } catch (std::exception& ex) {
+          throw std::runtime_error(msg_fmt() << ex.what() << " for property '" << name << "'");
+        }
+      }
+    };
+
+    template<typename Source, typename T>
+    inline bool read_setter (Source& in, T& t) {
+      return read_setter_t<Source, T>::from(in, t);
     }
 
     /// read shared
@@ -506,17 +563,17 @@ namespace persistent {
 
     /// detect attribute
     template<typename Source, typename T>
-    struct read_any_t<Source, attribute<T>> {
-      static inline bool from (Source& in, attribute<T>& t) {
+    struct read_any_t<Source, detail::attribute<T>> {
+      static inline bool from (Source& in, detail::attribute<T>& t) {
         return read_attribute(in, t);
       }
     };
 
     /// detect setter
     template<typename Source, typename T>
-    struct read_any_t<Source, setter<T>> {
-      static inline bool from (Source& in, setter<T>& t) {
-        return read_attribute(in, t);
+    struct read_any_t<Source, detail::setter<T>> {
+      static inline bool from (Source& in, detail::setter<T>& t) {
+        return read_setter(in, t);
       }
     };
 

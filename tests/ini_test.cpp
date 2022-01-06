@@ -40,7 +40,7 @@ void test_read_prop_type () {
 
   T value = {};
   std::istringstream is(str);
-  attribute at(value, "i");
+  auto at = attribute(value, "i");
   io::read_ini(is, at);
 
   EXPECT_EQUAL(value, expected.second, " for type ", typeid(T).name(), " with source ", str);
@@ -75,7 +75,7 @@ void test_read_array () {
                         "a.2=3\n"
                         "a.3=4\n"
                         "a.4=5\n");
-  attribute at(a, "a");
+  auto at = attribute(a, "a");
   io::read_ini(is, at);
 
   std::array<int64_t, 5> expected = {1, 2, 3, 4, 5};
@@ -90,7 +90,7 @@ void test_read_vector () {
                         "v.2=3\n"
                         "v.3=4\n"
                         "v.4=5\n");
-  attribute at(v, "v");
+  auto at = attribute(v, "v");
   io::read_ini(is, at);
 
   std::vector<int64_t> expected = {1, 2, 3, 4, 5};
@@ -102,7 +102,7 @@ void test_read_1 () {
 
   int64_t i = 0;
   std::istringstream is("i=4711\n");
-  attribute at(i, "i");
+  auto at = attribute(i, "i");
   io::read_ini(is, at);
 
   EXPECT_EQUAL(i, 4711);

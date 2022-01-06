@@ -60,121 +60,132 @@ namespace persistent {
     return std::make_tuple(a...);
   }
 
+  namespace detail {
+
+    struct property {
+      property (const std::string& name)
+        :name(name)
+      {}
+
+      const std::string name;   /// The name of the property
+    };
+    // --------------------------------------------------------------------------
+    //
+    // Wrapper for a named attribute of a persistent struct.
+    //
+    template<typename T>
+    struct attribute : public property {
+      typedef T type;
+
+      attribute (T& value, const std::string& name)
+        : property(name)
+        , value(value)
+      {}
+
+      T& value;           /// The attribute to read/write
+    };
+
+    // --------------------------------------------------------------------------
+    //
+    // Wrapper for a named attribute of a persistent struct.
+    //
+    template<typename T>
+    struct getter : public property {
+      typedef T type;
+
+      getter (T value, const std::string& name)
+        : property(name)
+        , value(value)
+      {}
+
+      T value;    /// The attribute to read
+    };
+
+    // --------------------------------------------------------------------------
+    template<class C, typename T>
+    std::function<void(T)> bind (C* c, void(C::*method)(T)) {
+      return [=](T t) {
+        return (c->*method)(t);
+      };
+    }
+
+    // --------------------------------------------------------------------------
+    //
+    // Wrapper for a named attribute of a persistent struct.
+    //
+    template<typename T>
+    struct setter : public property {
+      setter (std::function<void(T)> fn, const std::string& name)
+        : property(name)
+        , fn(fn)
+      {}
+
+      inline void call (T&& value) {
+        fn(std::move(value));
+      }
+
+      std::function<void(T)> fn; /// The method to write the attribute to
+    };
+
+  } // namespace detail
+
   // --------------------------------------------------------------------------
-  //
-  // Wrapper for a named attribute of a persistent struct.
-  //
   template<typename T>
-  struct attribute {
-    typedef T type;
-
-    attribute (T& v, char const* n)
-      : value(v)
-      , name(n)
-    {}
-
-    T& value;           /// The attribute to read/write
-    char const* name;   /// The name of the attribute
-  };
+  detail::attribute<T> attribute (T& value, const std::string& n) {
+    return detail::attribute<T>(value, n);
+  }
 
   template<typename T>
-  char const* get_property_name (const attribute<T>& a) {
+  detail::getter<T> getter (T&& value, const std::string& n) {
+    return detail::getter<T>(value, n);
+  }
+
+  template<class C, typename T>
+  detail::setter<T> setter (C& c, void(C::*method)(T), const std::string& n) {
+    return detail::setter<T>(detail::bind(&c, method), n);
+  }
+
+  template<typename T>
+  detail::setter<T> setter (std::function<void(T)> fn, const std::string& n) {
+    return detail::setter<T>(fn, n);
+  }
+
+  // --------------------------------------------------------------------------
+  template<typename T>
+  const std::string& get_property_name (const detail::attribute<T>& a) {
     return a.name;
   }
 
   template<typename T>
-  T& set_property_value (attribute<T>& a) {
-    return a.value;
-  }
-
-  template<typename T>
-  const T& get_property_value (const attribute<T>& a) {
-    return a.value;
-  }
-
-  namespace detail {
-
-    template<class C, typename T>
-    std::function<void(T)> bind (C& c, void(C::*method)(T)) {
-      C* cp = &c;
-      return [=](T t) {
-        return (cp->*method)(t);
-      };
-    }
-
-  } // namespace detail
-
-
-  // --------------------------------------------------------------------------
-  //
-  // Wrapper for a named attribute of a persistent struct.
-  //
-  template<typename T>
-  struct getter {
-    typedef T type;
-
-    getter (T value, char const* n)
-      : value(value)
-      , name(n)
-    {}
-
-    T value;    /// The attribute to read
-    char const* name; /// The name of the attribute
-  };
-
-  template<typename T>
-  struct getter<const T&> {
-    typedef T type;
-
-    getter (const T& value, char const* n)
-      : value(value)
-      , name(n)
-    {}
-
-    const T& value;    /// The attribute to read
-    char const* name; /// The name of the attribute
-  };
-
-  template<typename T>
-  inline char const* get_property_name (const getter<T>& g) {
+  const std::string& get_property_name (const detail::getter<T>& g) {
     return g.name;
   }
 
   template<typename T>
-  inline const T get_property_value (const getter<T>& g) {
-    return g.value;
+  const std::string& get_property_name (const detail::setter<T>& s) {
+    return s.name;
+  }
+
+  // --------------------------------------------------------------------------
+  template<typename T>
+  const T& get_property_value (const detail::attribute<T>& a) {
+    return a.value;
   }
 
   template<typename T>
-  inline const T& get_property_value (const getter<const T&>& g) {
+  const T get_property_value (const detail::getter<T>& g) {
     return g.value;
   }
 
   // --------------------------------------------------------------------------
-  //
-  // Wrapper for a named attribute of a persistent struct.
-  //
   template<typename T>
-  struct setter {
-    typedef T type;
-
-    setter (T& value, char const* n)
-      : value(value)
-      , name(n)
-    {}
-
-    T& value;         /// The attribute to write
-    char const* name; /// The name of the attribute
-  };
-
-  template<typename T>
-  char const* get_property_name (const setter<T>& s) {
-    return s.name;
+  T& access_property_value (detail::attribute<T>& a) {
+    return a.value;
   }
 
   template<typename T>
-  T& set_property_value (setter<T>& s) {
-    return s.value;
+  void set_property_value (detail::setter<T>& s, std::remove_const_t<std::remove_reference_t<T>>&& value) {
+    s.call(std::move(value));
   }
 
   // --------------------------------------------------------------------------
