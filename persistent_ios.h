@@ -125,7 +125,7 @@ namespace persistent {
     };
 
     template<typename T>
-    void write_stream(std::ostream& os, const T& t) {
+    void write_stream (std::ostream& os, const T& t) {
       write(os, t);
     }
 
@@ -394,39 +394,7 @@ namespace persistent {
     }
 
 
+    // --------------------------------------------------------------------------
   } // namespace io
 
 } // namespace persistent
-
-namespace std {
-
-  // --------------------------------------------------------------------------
-  template<typename ... Types>
-  inline std::ostream& operator << (std::ostream& os, 
-                                    const std::tuple<Types...>& t) {
-    persistent::io::write(os, t);
-    return os;
-  }
-
-  template<typename T>
-  inline std::ostream& operator << (std::ostream& os, const persistent::detail::attribute<T>& t) {
-    persistent::io::write(os, t);
-    return os;
-  }
-
-  // --------------------------------------------------------------------------
-  template<typename ... Types>
-  inline std::istream& operator >> (std::istream& is, std::tuple<Types...>& t) {
-    persistent::io::read(is, t);
-    return is;
-  }
-
-  template<typename T>
-  inline std::istream& operator >> (std::istream& is, const persistent::detail::attribute<T>& t) {
-    persistent::io::read(is, t);
-    return is;
-  }
-
-}
-
-// --------------------------------------------------------------------------
