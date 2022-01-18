@@ -36,7 +36,7 @@ namespace persistent {
 
     struct ini_path {
 
-      std::ostream& print (std::ostream& os) {
+      std::ostream& print (std::ostream& os) const {
         bool first = true;
         for (const auto& p : path) {
           if(first) {
@@ -107,6 +107,11 @@ namespace persistent {
     private:
       std::vector<std::string> path;
     };
+
+    // --------------------------------------------------------------------------
+    inline std::ostream& operator<< (std::ostream& os, const ini_path& p) {
+      return p.print(os);
+    }
 
     // --------------------------------------------------------------------------
     //
@@ -282,9 +287,9 @@ namespace persistent {
       }
     };
 
-    template<typename T>
-    struct read_vector_t<ini_parser_context, T> {
-      static bool from (ini_parser_context& in, std::vector<T>& v) {
+    template<typename T, typename A>
+    struct read_vector_t<ini_parser_context, T, A> {
+      static bool from (ini_parser_context& in, std::vector<T, A>& v) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
           if (std::all_of(index.begin(), index.end(), ::isdigit)) {
@@ -319,6 +324,20 @@ namespace persistent {
       }
     };
 
+    template<typename K, typename V, typename C, typename A>
+    struct read_map_t<ini_parser_context, K, V, C, A> {
+      static bool from (ini_parser_context& in, std::map<K, V, C, A>& m) {
+        if (in.path.is_parent_of(in.key)) {
+          const std::string& index = in.key.element(in.path.size());
+          in.path.push(index);
+          const bool found = read_any(in, m[index]);
+          in.path.pop();
+          return found;
+        }
+        return false;
+      }
+    };
+
     template<typename ... Types>
     struct read_tuple_t<ini_parser_context, Types...> {
       static bool from (ini_parser_context& in, std::tuple<Types...>& t) {
@@ -328,6 +347,29 @@ namespace persistent {
           const bool found = read_attributes_t<sizeof...(Types), ini_parser_context, Types...>::property(in, index, t);
           in.path.pop();
           return found;
+        }
+        return false;
+      }
+    };
+
+    template<typename T1, typename T2>
+    struct read_pair_t<ini_parser_context, T1, T2> {
+      static bool from (ini_parser_context& in, std::pair<T1, T2>& p) {
+        if (in.path.is_parent_of(in.key)) {
+          const std::string& index = in.key.element(in.path.size());
+          if (std::all_of(index.begin(), index.end(), ::isdigit)) {
+            in.path.push(index);
+            const int idx = std::stoi(index);
+            bool found = false;
+            switch (idx) {
+              case 0: found = read_any(in, p.first); break;
+              case 1: found = read_any(in, p.second); break;
+              default:
+                throw std::runtime_error(msg_fmt() << "Unexpected index " << idx << " for pair '" << in.key << "' expected [0, 1]");
+            }
+            in.path.pop();
+            return found;
+          }
         }
         return false;
       }

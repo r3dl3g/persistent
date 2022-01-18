@@ -146,4 +146,47 @@ struct test6 : private persistent_struct {
 };
 
 // --------------------------------------------------------------------------
+struct test7 : private persistent_struct {
+  test7 (const std::string& s_ = {}, int i_ = {})
+    : p(std::make_pair(s_, i_))
+  {}
 
+  auto attributes () {
+    return make_attributes(attribute(p, names::v));
+  }
+
+  std::pair<std::string, int> p;
+};
+
+// --------------------------------------------------------------------------
+enum class key : char {
+  first = 'F',
+  second = 'S',
+  third = 'T'
+};
+
+namespace persistent {
+
+  template<>
+  struct convert<key> {
+
+    static inline std::string key_to_string (const key& k) {
+      return std::string(1, static_cast<char>(k));
+    }
+
+    static inline key string_to_key (const std::string& k) {
+      return static_cast<key>(k[0]);
+    }
+
+  };
+}
+
+// --------------------------------------------------------------------------
+std::ostream& operator<< (std::ostream& os, key k) {
+  return os << static_cast<char>(k);
+}
+
+std::istream& operator>> (std::istream& is, key& k) {
+  return is >> reinterpret_cast<char&>(k);
+}
+// --------------------------------------------------------------------------

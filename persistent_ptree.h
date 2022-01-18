@@ -71,6 +71,19 @@ namespace persistent {
       }
     };
 
+    /// write pair
+    template<typename T1, typename T2>
+    struct write_pair_t<ptree, T1, T2> {
+      static void to (ptree& p, const std::pair<T1, T2>& v) {
+        ptree pt;
+        write_any(pt, v.first);
+        p.push_back(std::make_pair("", pt));
+        pt.clear();
+        write_any(pt, v.second);
+        p.push_back(std::make_pair("", pt));
+      }
+    };
+
     // --------------------------------------------------------------------------
     //
     // read
@@ -88,8 +101,8 @@ namespace persistent {
 
     /// read vector
     template<typename T>
-    struct read_vector_t<ptree, T> {
-      static bool from (ptree& p, std::vector<T>& v) {
+    struct read_vector_t<ptree, T, typename A> {
+      static bool from (ptree& p, std::vector<T, A>& v) {
         int i = 0;
         v.resize(p.size());
         for (auto& item : p) {
@@ -107,6 +120,19 @@ namespace persistent {
         for (auto& item : p) {
           read_any(item.second, a[i++]);
         }
+        return true;
+      }
+    };
+
+    /// read pair
+    template<typename T1, typename T2>
+    struct read_pair_t<ptree, T1, T2> {
+      static bool from (ptree& p, std::pair<T1, T2>& v) {
+        if (p.size() != 2) {
+          throw std::runtime_error(msg_fmt() << "Expected to have 2 childs for pair but got " << p.size());
+        }
+        read_any(p.front(), v.first);
+        read_any(p.back(), v.second);
         return true;
       }
     };

@@ -99,6 +99,40 @@ void test_read_vector () {
   std::vector<int64_t> expected = {1, 2, 3, 4, 5};
   EXPECT_EQUAL(v, expected);
 }
+// --------------------------------------------------------------------------
+void test_read_pair () {
+  test7 t;
+  std::istringstream is("{v:[\"Any Text\",4711]}");
+  io::read_stream(is, t);
+  EXPECT_EQUAL(t.p.first, "Any Text");
+  EXPECT_EQUAL(t.p.second, 4711);
+  EXPECT_TRUE(is.eof());
+  EXPECT_FALSE(is.good());
+}
+// --------------------------------------------------------------------------
+void test_read_map () {
+  std::istringstream is("{one:1,three:3,two:2}");
+  std::map<std::string, double> m;
+  io::read_stream(is, m);
+  std::map<std::string, double> expected { { "one", 1 }, { "two", 2 }, { "three", 3 } };
+  EXPECT_EQUAL(m, expected);
+}
+// --------------------------------------------------------------------------
+void test_read_map_2 () {
+  std::istringstream is("{1:1.1,2:2.2,3:3.3}");
+  std::map<int, double> m;
+  io::read_stream(is, m);
+  std::map<int, double> expected { { 1, 1.1 }, { 2, 2.2 }, { 3, 3.3 } };
+  EXPECT_EQUAL(m, expected);
+}
+// --------------------------------------------------------------------------
+void test_read_map_3 () {
+  std::istringstream is("{F:1.1,S:2.2,T:3.3}");
+  std::map<key, double> m;
+  io::read_stream(is, m);
+  std::map<key, double> expected { { key::first, 1.1 }, { key::second, 2.2 }, { key::third, 3.3 } };
+  EXPECT_EQUAL(m, expected);
+}
 
 // --------------------------------------------------------------------------
 void test_read_1 () {
@@ -329,7 +363,38 @@ void test_write_vector () {
   io::write_stream(os, at);
   EXPECT_EQUAL(os.str(), "v:[1,2,3,4,5]");
 }
+// --------------------------------------------------------------------------
+void test_write_pair () {
+  test7 t("Any Text", 4711);
+  std::ostringstream os;
+  io::write_stream(os, t);
 
+  EXPECT_EQUAL(os.str(), "{v:[\"Any Text\",4711]}");
+}
+// --------------------------------------------------------------------------
+void test_write_map () {
+  std::map<std::string, double> m { { "one", 1 }, { "two", 2 }, { "three", 3 } };
+  std::ostringstream os;
+  io::write_stream(os, m);
+
+  EXPECT_EQUAL(os.str(), "{one:1,three:3,two:2}");
+}
+// --------------------------------------------------------------------------
+void test_write_map_2 () {
+  std::map<int, double> m { { 1, 1.1 }, { 2, 2.2 }, { 3, 3.3 } };
+  std::ostringstream os;
+  io::write_stream(os, m);
+
+  EXPECT_EQUAL(os.str(), "{1:1.1,2:2.2,3:3.3}");
+}
+// --------------------------------------------------------------------------
+void test_write_map_3 () {
+  std::map<key, double> m { { key::first, 1.1 }, { key::second, 2.2 }, { key::third, 3.3 } };
+  std::ostringstream os;
+  io::write_stream(os, m);
+
+  EXPECT_EQUAL(os.str(), "{F:1.1,S:2.2,T:3.3}");
+}
 // --------------------------------------------------------------------------
 void test_main (const testing::start_params& params) {
   testing::log_info("Running " __FILE__);
@@ -337,6 +402,10 @@ void test_main (const testing::start_params& params) {
   run_test(test_read_all_basic_types);
   run_test(test_read_array);
   run_test(test_read_vector);
+  run_test(test_read_pair);
+  run_test(test_read_map);
+  run_test(test_read_map_2);
+  run_test(test_read_map_3);
   run_test(test_read_1);
   run_test(test_read_2);
   run_test(test_read_3);
@@ -351,6 +420,10 @@ void test_main (const testing::start_params& params) {
 
   run_test(test_write_array);
   run_test(test_write_vector);
+  run_test(test_write_pair);
+  run_test(test_write_map);
+  run_test(test_write_map_2);
+  run_test(test_write_map_3);
   run_test(test_write_1);
   run_test(test_write_2);
   run_test(test_write_3);

@@ -45,12 +45,12 @@ namespace persistent {
 
   // --------------------------------------------------------------------------
   template<typename T>
-  auto attributes (T& t) {
+  inline auto attributes (T& t) {
     return t.attributes();
   }
 
   template<typename T>
-  auto attributes (const T& t) {
+  inline auto attributes (const T& t) {
     return attributes((const_cast<T&>(t)));
   }
 
@@ -63,7 +63,7 @@ namespace persistent {
   namespace detail {
 
     struct property {
-      property (const std::string& name)
+      inline property (const std::string& name)
         :name(name)
       {}
 
@@ -77,7 +77,7 @@ namespace persistent {
     struct attribute : public property {
       typedef T type;
 
-      attribute (T& value, const std::string& name)
+      inline attribute (T& value, const std::string& name)
         : property(name)
         , value(value)
       {}
@@ -93,7 +93,7 @@ namespace persistent {
     struct getter : public property {
       typedef T type;
 
-      getter (T value, const std::string& name)
+      inline getter (T value, const std::string& name)
         : property(name)
         , value(value)
       {}
@@ -103,7 +103,7 @@ namespace persistent {
 
     // --------------------------------------------------------------------------
     template<class C, typename T>
-    std::function<void(T)> bind (C* c, void(C::*method)(T)) {
+    inline std::function<void(T)> bind (C* c, void(C::*method)(T)) {
       return [=](T t) {
         return (c->*method)(t);
       };
@@ -115,7 +115,7 @@ namespace persistent {
     //
     template<typename T>
     struct setter : public property {
-      setter (std::function<void(T)> fn, const std::string& name)
+      inline setter (std::function<void(T)> fn, const std::string& name)
         : property(name)
         , fn(fn)
       {}
@@ -131,62 +131,91 @@ namespace persistent {
 
   // --------------------------------------------------------------------------
   template<typename T>
-  detail::attribute<T> attribute (T& value, const std::string& n) {
+  inline detail::attribute<T> attribute (T& value, const std::string& n) {
     return detail::attribute<T>(value, n);
   }
 
   template<typename T>
-  detail::getter<T> getter (T&& value, const std::string& n) {
+  inline detail::getter<T> getter (T&& value, const std::string& n) {
     return detail::getter<T>(value, n);
   }
 
   template<class C, typename T>
-  detail::setter<T> setter (C& c, void(C::*method)(T), const std::string& n) {
+  inline detail::setter<T> setter (C& c, void(C::*method)(T), const std::string& n) {
     return detail::setter<T>(detail::bind(&c, method), n);
   }
 
   template<typename T>
-  detail::setter<T> setter (std::function<void(T)> fn, const std::string& n) {
+  inline detail::setter<T> setter (std::function<void(T)> fn, const std::string& n) {
     return detail::setter<T>(fn, n);
   }
 
   // --------------------------------------------------------------------------
   template<typename T>
-  const std::string& get_property_name (const detail::attribute<T>& a) {
+  inline const std::string& get_property_name (const detail::attribute<T>& a) {
     return a.name;
   }
 
   template<typename T>
-  const std::string& get_property_name (const detail::getter<T>& g) {
+  inline const std::string& get_property_name (const detail::getter<T>& g) {
     return g.name;
   }
 
   template<typename T>
-  const std::string& get_property_name (const detail::setter<T>& s) {
+  inline const std::string& get_property_name (const detail::setter<T>& s) {
     return s.name;
   }
 
   // --------------------------------------------------------------------------
   template<typename T>
-  const T& get_property_value (const detail::attribute<T>& a) {
+  inline const T& get_property_value (const detail::attribute<T>& a) {
     return a.value;
   }
 
   template<typename T>
-  const T get_property_value (const detail::getter<T>& g) {
+  inline const T get_property_value (const detail::getter<T>& g) {
     return g.value;
   }
 
   // --------------------------------------------------------------------------
   template<typename T>
-  T& access_property_value (detail::attribute<T>& a) {
+  inline T& access_property_value (detail::attribute<T>& a) {
     return a.value;
   }
 
   template<typename T>
-  void set_property_value (detail::setter<T>& s, std::remove_const_t<std::remove_reference_t<T>>&& value) {
+  inline void set_property_value (detail::setter<T>& s, std::remove_const_t<std::remove_reference_t<T>>&& value) {
     s.call(std::move(value));
   }
+
+  // --------------------------------------------------------------------------
+  template<typename T>
+  struct convert {
+
+    static inline std::string key_to_string (const T& k) {
+      std::ostringstream os;
+      os << k;
+      return os.str();
+    }
+
+    static inline T string_to_key (const std::string& s) {
+      T k = {};
+      std::istringstream(s) >> k;
+      return k;
+    }
+  };
+
+  template<>
+  struct convert<std::string> {
+
+    static inline const std::string& key_to_string (const std::string& k) {
+      return k;
+    }
+
+    static inline const std::string& string_to_key (const std::string& k) {
+      return k;
+    }
+  };
 
   // --------------------------------------------------------------------------
 

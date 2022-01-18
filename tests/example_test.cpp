@@ -206,7 +206,7 @@ namespace persistent {
 // --------------------------------------------------------------------------
 void test_write3 () {
 
-  MyStruct3 s = { "Some text", 4711 };
+  MyStruct3 s{ "Some text", 4711 };
 
   std::ostringstream os;
   persistent::io::write_json(os, s, false);
@@ -276,7 +276,7 @@ namespace persistent {
 // --------------------------------------------------------------------------
 void test_write4 () {
 
-  MyStruct4 s = { "Some text", 4711 };
+  MyStruct4 s{ "Some text", 4711 };
 
   std::ostringstream os;
   persistent::io::write_json(os, s, false);

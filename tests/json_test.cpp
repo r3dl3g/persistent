@@ -90,6 +90,24 @@ void test_read_vector () {
   std::vector<int64_t> expected = {1, 2, 3, 4, 5};
   EXPECT_EQUAL(v, expected);
 }
+// --------------------------------------------------------------------------
+void test_read_pair () {
+  test7 t;
+  std::istringstream is("{\"v\":[\"Any Text\",\"4711\"]}");
+  io::read_json(is, t);
+  EXPECT_EQUAL(t.p.first, "Any Text");
+  EXPECT_EQUAL(t.p.second, 4711);
+  EXPECT_TRUE(is.eof());
+  EXPECT_FALSE(is.good());
+}
+// --------------------------------------------------------------------------
+void test_read_map () {
+  std::istringstream is("{\"one\":\"1\",\"three\":\"3\",\"two\":\"2\"}");
+  std::map<std::string, double> m;
+  io::read_json(is, m);
+  std::map<std::string, double> expected { { "one", 1 }, { "two", 2 }, { "three", 3 } };
+  EXPECT_EQUAL(m, expected);
+}
 
 // --------------------------------------------------------------------------
 void test_read_1 () {
@@ -316,6 +334,22 @@ void test_write_vector () {
   io::write_json(os, attribute(v, "v"), false);
   EXPECT_EQUAL(os.str(),"\"v\":[\"1\",\"2\",\"3\",\"4\",\"5\"]");
 }
+// --------------------------------------------------------------------------
+void test_write_pair () {
+  test7 t("Any Text", 4711);
+  std::ostringstream os;
+  io::write_json(os, t, false);
+
+  EXPECT_EQUAL(os.str(), "{\"v\":[\"Any Text\",\"4711\"]}");
+}
+// --------------------------------------------------------------------------
+void test_write_map () {
+  std::map<std::string, double> m { { "one", 1 }, { "two", 2 }, { "three", 3 } };
+  std::ostringstream os;
+  io::write_json(os, m, false);
+
+  EXPECT_EQUAL(os.str(), "{\"one\":\"1\",\"three\":\"3\",\"two\":\"2\"}");
+}
 
 // --------------------------------------------------------------------------
 void test_main (const testing::start_params& params) {
@@ -324,6 +358,8 @@ void test_main (const testing::start_params& params) {
   run_test(test_read_all_basic_types);
   run_test(test_read_array);
   run_test(test_read_vector);
+  run_test(test_read_pair);
+  run_test(test_read_map);
   run_test(test_read_1);
   run_test(test_read_2);
   run_test(test_read_3);
@@ -338,6 +374,8 @@ void test_main (const testing::start_params& params) {
 
   run_test(test_write_array);
   run_test(test_write_vector);
+  run_test(test_write_pair);
+  run_test(test_write_map);
   run_test(test_write_1);
   run_test(test_write_2);
   run_test(test_write_3);
