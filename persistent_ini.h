@@ -339,7 +339,7 @@ namespace persistent {
     };
 
     template<typename ... Types>
-    struct read_tuple_t<ini_parser_context, Types...> {
+    struct read_struct_t<ini_parser_context, Types...> {
       static bool from (ini_parser_context& in, std::tuple<Types...>& t) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());

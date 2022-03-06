@@ -104,8 +104,8 @@ void test_read_pair () {
   test7 t;
   std::istringstream is("{v:[\"Any Text\",4711]}");
   io::read_stream(is, t);
-  EXPECT_EQUAL(t.p.first, "Any Text");
-  EXPECT_EQUAL(t.p.second, 4711);
+  std::pair<std::string, int> expected = {"Any Text", 4711};
+  EXPECT_EQUAL(t.p, expected);
   EXPECT_TRUE(is.eof());
   EXPECT_FALSE(is.good());
 }

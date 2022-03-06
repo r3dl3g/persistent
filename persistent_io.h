@@ -214,9 +214,9 @@ namespace persistent {
       }
     };
 
-    /// write tuple
+    /// write struct
     template<typename Target, typename ... Types>
-    struct write_tuple_t {
+    struct write_struct_t {
       static void to (Target& out, const std::tuple<Types...>& t) {
         formatter<Target>::write_struct_start(out);
         write_attributes_t<(sizeof...(Types)) - 1, Target, Types...>::to(out, t);
@@ -225,8 +225,8 @@ namespace persistent {
     };
 
     template<typename Target, typename... Types>
-    void write_tuple (Target& out, const std::tuple<Types...>& t) {
-      write_tuple_t<Target, Types...>::to(out, t);
+    void write_struct (Target& out, const std::tuple<Types...>& t) {
+      write_struct_t<Target, Types...>::to(out, t);
     }
 
     /// write shared values
@@ -261,6 +261,44 @@ namespace persistent {
     template<typename Target, typename T, typename D>
     void write_unique (Target& out, const std::unique_ptr<T, D>& t) {
       write_unique_t<Target, T, D>::to(out, t);
+    }
+
+    /**
+    * write recursive all elements of a tuple
+    */
+    template<std::size_t I, typename Target, typename... Types>
+    struct write_tuple_element_t {
+      static void to (Target& out, std::tuple<const Types...> const& t) {
+        write_tuple_element_t<I - 1, Target, Types...>::to(out, t);
+        formatter<Target>::write_members_delemiter(out);
+        formatter<Target>::write_property_init(out, std::to_string(I));
+        write_any(out, std::get<I>(t));
+        formatter<Target>::write_property_finish(out, std::to_string(I));
+      }
+    };
+
+    /// end recursion at 0 elemnt.
+    template<typename Target, typename... Types>
+    struct write_tuple_element_t<0, Target, Types...> {
+      static void to (Target& out, std::tuple<const Types...> const& t) {
+        formatter<Target>::write_property_init(out, "0");
+        write_any(out, std::get<0>(t));
+        formatter<Target>::write_property_finish(out, "0");
+      }
+    };
+
+    template<typename Target, typename... Types>
+    struct write_tuple_t {
+      static void to (Target& out, const std::tuple<Types...>& t) {
+        formatter<Target>::write_struct_start(out);
+        write_tuple_element_t<(sizeof...(Types)) - 1, Target, Types...>::to(out, t);
+        formatter<Target>::write_struct_end(out);
+      }
+    };
+
+    template<typename Target, typename... Types>
+    void write_tuple (Target& out, const std::tuple<Types...>& t) {
+      write_tuple_t<Target, Types...>::to(out, t);
     }
 
     /// write pair
@@ -327,7 +365,7 @@ namespace persistent {
     template<typename Target, typename T>
     struct write_any_t<Target, T, typename std::enable_if<is_persistent<T>::value>::type> {
       static void to (Target& out, const T& t) {
-        write_tuple(out, persistent::attributes(t));
+        write_struct(out, persistent::attributes(t));
       }
     };
 
@@ -344,6 +382,14 @@ namespace persistent {
     struct write_any_t<Target, std::unique_ptr<T, D>> {
       static void to (Target& out, const std::unique_ptr<T, D>& t) {
         write_unique(out, t);
+      }
+    };
+
+    /// detect tuple
+    template<typename Target, typename... Types>
+    struct write_any_t<Target, std::tuple<Types...>> {
+      static void to (Target& out, const std::tuple<Types...>& t) {
+        write_tuple(out, t);
       }
     };
 
@@ -400,7 +446,9 @@ namespace persistent {
     /// read property
     template<typename Source, typename T>
     struct read_property_t {
-      static bool from (Source& in, T& t);
+      static bool from (Source& in, T& t) {
+        return read_value(in, t);
+      }
     };
 
     /**
@@ -539,7 +587,7 @@ namespace persistent {
 
     /// read tuple
     template<typename Source, typename ... Types>
-    struct read_tuple_t {
+    struct read_struct_t {
       static bool from (Source& in, std::tuple<Types...>& t) {
         std::string name;
         bool found = false;
@@ -553,8 +601,8 @@ namespace persistent {
     };
 
     template<typename Source, typename ... Types>
-    inline bool read_tuple (Source& in, std::tuple<Types...>& t) {
-      return read_tuple_t<Source, Types...>::from(in, t);
+    inline bool read_struct (Source& in, std::tuple<Types...>& t) {
+      return read_struct_t<Source, Types...>::from(in, t);
     }
 
     /// read property as attribute
@@ -643,6 +691,50 @@ namespace persistent {
       return read_unique_t<Source, T, D>::from(in, t);
     }
 
+    /// read element with name of a tuple
+    template<std::size_t I, typename Source, typename ... Types>
+    struct read_tuple_element_t {
+      static bool property (Source& in, const std::string& name, std::tuple<Types...>& t) {
+        bool found = read_tuple_element_t<I - 1, Source, Types...>::property(in, name, t);
+        if (!found) {
+          auto& f = std::get<I - 1>(t);
+          auto n = std::to_string(I - 1);
+          if (name == n) {
+            found |= read_property(in, f);
+          }
+        }
+        return found;
+      }
+    };
+
+    /// Stop recoursion at element 0
+    template<typename Source, typename ... Types>
+    struct read_tuple_element_t<0, Source, Types...> {
+      static inline bool property (Source&, const std::string& name, std::tuple<Types ...>&) {
+        return false;
+      }
+    };
+
+    /// read tuple
+    template<typename Source, typename ... Types>
+    struct read_tuple_t {
+      static bool from (Source& in, std::tuple<Types...>& t) {
+        std::string name;
+        bool found = false;
+        while (parser<Source>::read_next_struct_element(in, name)) {
+          found |= read_tuple_element_t<sizeof...(Types), Source, Types...>::property(in, name, t);
+          parser<Source>::read_struct_element_finish(in, name);
+          name.clear();
+        }
+        return found;
+      }
+    };
+
+    template<typename Source, typename ... Types>
+    inline bool read_tuple(Source& in, std::tuple<Types...>& t) {
+      return read_tuple_t<Source, Types...>::from(in, t);
+    }
+
     /// read pair
     template<typename Source, typename T1, typename T2>
     struct read_pair_t {
@@ -715,7 +807,7 @@ namespace persistent {
     struct read_any_t<Source, T, typename std::enable_if<is_persistent<T>::value>::type> {
       static inline bool from (Source& in, T& t) {
         auto attr = persistent::attributes(t);
-        return read_tuple(in, attr);
+        return read_struct(in, attr);
       }
     };
 
@@ -732,6 +824,14 @@ namespace persistent {
     struct read_any_t<Source, std::unique_ptr<T, D>> {
       static inline bool from (Source& in, std::unique_ptr<T, D>& t) {
         return read_unique(in, t);
+      }
+    };
+
+    /// detect tuple
+    template<typename Source, typename... Types>
+    struct read_any_t<Source, std::tuple<Types...>> {
+      static inline bool from (Source& in, std::tuple<Types...>& t) {
+        return read_tuple(in, t);
       }
     };
 

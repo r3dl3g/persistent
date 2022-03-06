@@ -139,7 +139,7 @@ namespace persistent {
 
     /// read tuple
     template<typename ... Types>
-    struct read_tuple_t<ptree, Types...> {
+    struct read_struct_t<ptree, Types...> {
       static bool from (ptree& p, std::tuple<Types&...> t) {
         bool found = true;
         for (auto& item : p) {
