@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.19)
 
-project("persistent" LANGUAGES CXX VERSION 2.1.0)
+file(READ "derivation.nix" derivation_ver)
+string(REGEX MATCH "version = \"([0-9\.]+)\"" _ ${derivation_ver})
+set(project_version ${CMAKE_MATCH_1})
+
+message("Building persistent version: ${project_version}")
+
+project("persistent" LANGUAGES CXX VERSION ${project_version})
 
 include (GenerateExportHeader)
 include (CMakePackageConfigHelpers)
