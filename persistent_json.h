@@ -53,6 +53,27 @@ namespace persistent {
     template<typename T>
     struct write_value_t<json_formatter_context, T> {
       static void to (json_formatter_context& out, const T& t) {
+        out.os << t;
+      }
+    };
+
+    template<>
+    struct write_value_t<json_formatter_context, const std::string> {
+      static void to (json_formatter_context& out, const std::string& t) {
+        out.os << '"' << t << '"';
+      }
+    };
+
+    template<>
+    struct write_value_t<json_formatter_context, const char*> {
+      static void to (json_formatter_context& out, const char*& t) {
+        out.os << '"' << t << '"';
+      }
+    };
+
+    template<std::size_t T>
+    struct write_value_t<json_formatter_context, const char[T]> {
+      static void to (json_formatter_context& out, const char(&t)[T]) {
         out.os << '"' << t << '"';
       }
     };
@@ -105,7 +126,7 @@ namespace persistent {
         char delim = 0;
         in.is >> std::ws >> delim >> std::ws;
         if ((delim != ',') && (delim != '{') && (delim != '}')) {
-          throw std::runtime_error(msg_fmt() << "Expected coma ',' or curly bracket '{' or '}' but got '" << delim << "'");
+          throw std::runtime_error(msg_fmt() << "Expected coma ',' or curly bracket '{' or '}' but got '" << delim << "' for key: '" << key << "'");
         }
         if (in.is.good() && (delim == '{') && (in.is.peek() == '}')) {
           in.is >> delim;
@@ -138,18 +159,7 @@ namespace persistent {
     struct read_value_t<json_parser_context, T> {
       static bool from (json_parser_context& in, T& t) {
         in.is >> std::ws;
-        if ((in.is.peek() != '"') && (in.is.peek() != '\'')) {
-          return false;
-        }
-        char delim;
-        in.is >> delim;
-        read_value_t<std::istream, T>::from(in.is, t);
-        char delim2;
-        in.is >> delim2;
-        if (delim != delim2) {
-          throw std::runtime_error(msg_fmt() << "Expected string delemiter " << delim << " but got '" << delim2 << "'");
-        }
-        return true;
+        return read_value_t<std::istream, T>::from(in.is, t);
       }
     };
 
@@ -162,8 +172,7 @@ namespace persistent {
         }
         char delim;
         in.is >> delim;
-        std::getline(in.is, t, delim);
-        return true;
+        return std::getline(in.is, t, delim).good();
       }
     };
 

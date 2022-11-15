@@ -387,6 +387,18 @@ namespace persistent {
     };
 
     template<>
+    struct read_value_t<ini_parser_context, char> {
+      static bool from (ini_parser_context& in, char& t) {
+        if (in.match()) {
+          in.is >> std::ws;
+          t = in.is.get();
+          return true;
+        }
+        return false;
+      }
+    };
+
+    template<>
     struct read_value_t<ini_parser_context, std::string> {
       static bool from (ini_parser_context& in, std::string& t) {
         if (in.match()) {

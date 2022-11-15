@@ -48,7 +48,7 @@ template<> constexpr std::pair<char const*, int64_t>      get_test_data<int64_t>
 template<> constexpr std::pair<char const*, uint64_t>     get_test_data<uint64_t> ()     { return { "549755813887", 549755813887 }; }
 template<> constexpr std::pair<char const*, float>        get_test_data<float> ()        { return { "12345.12345", 12345.12345 }; }
 template<> constexpr std::pair<char const*, double>       get_test_data<double> ()       { return { "12345678.12345678", 12345678.12345678 }; }
-template<> inline    std::pair<char const*, std::string>  get_test_data<std::string> ()  { return { "Some text", "Some text" }; }
+template<> inline    std::pair<char const*, std::string>  get_test_data<std::string> ()  { return { "\"Some text\"", "Some text" }; }
 template<> inline    std::pair<char const*, std::unique_ptr<int64_t>> get_test_data<std::unique_ptr<int64_t>> () { return { "-549755813887", std::make_unique<int64_t>(-549755813887) }; }
 template<> inline    std::pair<char const*, std::shared_ptr<int64_t>> get_test_data<std::shared_ptr<int64_t>> () { return { "-549755813886", std::make_shared<int64_t>(-549755813886) }; }
 
@@ -190,3 +190,107 @@ std::istream& operator>> (std::istream& is, key& k) {
   return is >> reinterpret_cast<char&>(k);
 }
 // --------------------------------------------------------------------------
+
+struct CpuLoad {
+  std::string cpu;
+  float usr;
+  float nice;
+  float sys;
+  float iowait;
+  float irq;
+  float soft;
+  float steal;
+  float guest;
+  float gnice;
+  float idle;
+};
+
+struct Statistics {
+  std::string timestamp;
+  std::vector<CpuLoad> cpu_load;
+};
+
+struct Host {
+  std::string nodename;
+  std::string sysname;
+  std::string release;
+  std::string machine;
+  int number_of_cpus;
+  std::string date;
+  std::vector<Statistics> statistics;
+};
+
+struct SysStat {
+  std::vector<Host> hosts;
+};
+
+struct MpStat {
+  SysStat sysstat;
+};
+// --------------------------------------------------------------------------
+namespace persistent {
+
+  template <>
+  struct is_persistent<CpuLoad> : std::true_type {};
+
+  template <>
+  struct is_persistent<Statistics> : std::true_type {};
+
+  template <>
+  struct is_persistent<Host> : std::true_type {};
+
+  template <>
+  struct is_persistent<SysStat> : std::true_type {};
+
+  template <>
+  struct is_persistent<MpStat> : std::true_type {};
+
+  template<>
+  auto attributes<CpuLoad> (CpuLoad& t) {
+    return make_attributes(
+      attribute(t.cpu, "cpu"),
+      attribute(t.usr, "usr"),
+      attribute(t.nice, "nice"),
+      attribute(t.sys, "sys"),
+      attribute(t.iowait, "iowait"),
+      attribute(t.irq, "irq"),
+      attribute(t.soft, "soft"),
+      attribute(t.steal, "steal"),
+      attribute(t.guest, "guest"),
+      attribute(t.gnice, "gnice"),
+      attribute(t.idle, "idle")
+    );
+  }
+
+  template<>
+  auto attributes<Statistics> (Statistics& t) {
+    return make_attributes(
+      attribute(t.timestamp, "timestamp"),
+      attribute(t.cpu_load, "cpu-load")
+    );
+  }
+
+  template<>
+  auto attributes<Host> (Host& t) {
+    return make_attributes(
+      attribute(t.nodename, "nodename"),
+      attribute(t.sysname, "sysname"),
+      attribute(t.release, "release"),
+      attribute(t.machine, "machine"),
+      attribute(t.number_of_cpus, "number-of-cpus"),
+      attribute(t.date, "date"),
+      attribute(t.statistics, "statistics")
+    );
+  }
+
+  template<>
+  auto attributes<SysStat> (SysStat& t) {
+    return make_attributes(attribute(t.hosts, "hosts"));
+  }
+
+  template<>
+  auto attributes<MpStat> (MpStat& t) {
+    return make_attributes(attribute(t.sysstat, "sysstat"));
+  }
+
+}

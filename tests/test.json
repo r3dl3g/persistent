@@ -1,0 +1,32 @@
+{"sysstat": {
+	"hosts": [
+		{
+                        "nodename": "test",
+			"sysname": "Linux",
+			"release": "5.15.74",
+			"machine": "x86_64",
+			"number-of-cpus": 12,
+			"date": "14.11.2022",
+			"statistics": [
+				{
+					"timestamp": "23:13:32",
+					"cpu-load": [
+						{"cpu": "all", "usr": 7.55, "nice": 0.00, "sys": 2.44, "iowait": 0.15, "irq": 0.00, "soft": 0.10, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 89.77},
+						{"cpu": "0", "usr": 1.30, "nice": 0.00, "sys": 0.73, "iowait": 0.19, "irq": 0.00, "soft": 0.19, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 97.59},
+						{"cpu": "1", "usr": 11.71, "nice": 0.00, "sys": 3.89, "iowait": 0.14, "irq": 0.00, "soft": 0.06, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 84.20},
+						{"cpu": "2", "usr": 11.17, "nice": 0.00, "sys": 3.66, "iowait": 0.13, "irq": 0.00, "soft": 0.15, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 84.89},
+						{"cpu": "3", "usr": 11.39, "nice": 0.00, "sys": 3.67, "iowait": 0.13, "irq": 0.00, "soft": 0.06, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 84.73},
+						{"cpu": "4", "usr": 11.66, "nice": 0.00, "sys": 3.56, "iowait": 0.13, "irq": 0.00, "soft": 0.01, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 84.63},
+						{"cpu": "5", "usr": 12.03, "nice": 0.00, "sys": 3.57, "iowait": 0.12, "irq": 0.00, "soft": 0.02, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 84.26},
+						{"cpu": "6", "usr": 12.12, "nice": 0.00, "sys": 3.29, "iowait": 0.09, "irq": 0.00, "soft": 0.04, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 84.45},
+						{"cpu": "7", "usr": 10.70, "nice": 0.00, "sys": 3.33, "iowait": 0.10, "irq": 0.00, "soft": 0.01, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 85.86},
+						{"cpu": "8", "usr": 10.97, "nice": 0.00, "sys": 3.25, "iowait": 0.12, "irq": 0.00, "soft": 0.01, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 85.66},
+						{"cpu": "9", "usr": 10.69, "nice": 0.00, "sys": 3.26, "iowait": 0.11, "irq": 0.00, "soft": 0.01, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 85.93},
+						{"cpu": "10", "usr": 10.53, "nice": 0.00, "sys": 3.21, "iowait": 0.11, "irq": 0.00, "soft": 0.08, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 86.07},
+						{"cpu": "11", "usr": 10.88, "nice": 0.00, "sys": 3.26, "iowait": 0.12, "irq": 0.00, "soft": 0.01, "steal": 0.00, "guest": 0.00, "gnice": 0.00, "idle": 85.74}
+					]
+				}
+			]
+		}
+	]
+}}

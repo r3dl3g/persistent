@@ -253,6 +253,17 @@ namespace persistent {
       }
     };
 
+    template<>
+    struct read_value_t<xml_parser_context, char> {
+      static bool from (xml_parser_context& in, char& t) {
+        if (in.next_token().empty()) {
+          t = in.is.get();
+          return true;
+        }
+        return false;
+      }
+    };
+
     template<typename T>
     bool read_xml (std::istream& is, T& t) {
       xml_parser_context in(is);

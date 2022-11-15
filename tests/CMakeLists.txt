@@ -25,6 +25,8 @@ IF(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0")
 ENDIF()
 
+configure_file("test.json" ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+
 foreach(test ${tests})
     add_executable(${test} WIN32 ${test}.cpp)
     target_link_libraries(${test} testing ${PERSISTENT_LIBRARIES} ${UTIL_SYS_LIBRARIES})

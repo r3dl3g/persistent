@@ -16,8 +16,8 @@
 
 #include "persistent/persistent_json.h"
 #include <testing/testing.h>
-
 #include "test_structs.h"
+#include <fstream>
 
 // --------------------------------------------------------------------------
 void test_read_empty () {
@@ -38,7 +38,7 @@ void test_read_empty () {
 template<typename T>
 void test_read_prop_type () {
   const auto expected = get_test_data<T>();
-  const std::string str = io::msg_fmt() << "\"i\":\"" << expected.first << "\"";
+  const std::string str = io::msg_fmt() << "\"i\":" << expected.first;
 
   T value = {};
   std::istringstream is(str);
@@ -72,7 +72,7 @@ void test_read_all_basic_types () {
 void test_read_array () {
 
   std::array<int64_t, 5> a;
-  std::istringstream is("\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"]");
+  std::istringstream is("\"a\":[1,2,3,4,5]");
   auto at = attribute(a, "a");
   io::read_json(is, at);
 
@@ -83,7 +83,7 @@ void test_read_array () {
 void test_read_vector () {
 
   std::vector<int64_t> v;
-  std::istringstream is("\"v\":['1','2','3','4','5']");
+  std::istringstream is("\"v\":[1,2,3,4,5]");
   auto at = attribute(v, "v");
   io::read_json(is, at);
 
@@ -93,7 +93,7 @@ void test_read_vector () {
 // --------------------------------------------------------------------------
 void test_read_pair () {
   test7 t;
-  std::istringstream is("{\"v\":[\"Any Text\",\"4711\"]}");
+  std::istringstream is("{\"v\":[\"Any Text\",4711]}");
   io::read_json(is, t);
   EXPECT_EQUAL(t.p.first, "Any Text");
   EXPECT_EQUAL(t.p.second, 4711);
@@ -102,7 +102,7 @@ void test_read_pair () {
 }
 // --------------------------------------------------------------------------
 void test_read_map () {
-  std::istringstream is("{\"one\":\"1\",\"three\":\"3\",\"two\":\"2\"}");
+  std::istringstream is("{\"one\":1,\"three\":3,\"two\":2}");
   std::map<std::string, double> m;
   io::read_json(is, m);
   std::map<std::string, double> expected { { "one", 1 }, { "two", 2 }, { "three", 3 } };
@@ -113,7 +113,7 @@ void test_read_map () {
 void test_read_1 () {
 
   test_int64 t1;
-  std::istringstream is("{\"i\":\"4711\"}");
+  std::istringstream is("{\"i\":4711}");
   io::read_json(is, t1);
 
   EXPECT_EQUAL(t1.i, 4711);
@@ -125,7 +125,7 @@ void test_read_1 () {
 void test_read_2 () {
 
   test_int64 t1;
-  std::istringstream is("{\"i\":\"4711\",\"j\":\"815\"}");
+  std::istringstream is("{\"i\":4711,\"j\":815}");
   io::read_json(is, t1);
 
   EXPECT_EQUAL(t1.i, 4711);
@@ -138,7 +138,7 @@ void test_read_2 () {
 void test_read_3 () {
 
   int64_t i = 0;
-  std::istringstream is("\"i\":\"4711\"");
+  std::istringstream is("\"i\":4711");
   auto at = attribute(i, "i");
   io::read_json(is, at);
 
@@ -149,7 +149,7 @@ void test_read_3 () {
 void test_read_4 () {
 
   test_int64 t1;
-  std::istringstream is(" \n \t { \n \t \"i\" \n \t : \n \t \"4711\" \n \t } \n \t ");
+  std::istringstream is(" \n \t { \n \t \"i\" \n \t : \n \t 4711 \n \t } \n \t ");
   io::read_json(is, t1);
 
   EXPECT_EQUAL(t1.i, 4711);
@@ -161,7 +161,7 @@ void test_read_4 () {
 // --------------------------------------------------------------------------
 void test_read_5 () {
   test2 t2;
-  std::istringstream is("{\"i1\":\"815\", \"t1\":{\"i\":\"911\", \"j\":\"203\"}, \"i2\": \"4711\"}");
+  std::istringstream is("{\"i1\":815, \"t1\":{\"i\":911, \"j\":203}, \"i2\": 4711}");
   io::read_json(is, t2);
 
   EXPECT_EQUAL(t2.i1, 815);
@@ -174,7 +174,7 @@ void test_read_5 () {
 void test_read_6 () {
 
   test_int64 t1;
-  std::istringstream is("{\"i\":\"4711\",\"k\":\"815\"}");
+  std::istringstream is("{\"i\":4711,\"k\":815}");
   try {
     io::read_json(is, t1);
     EXPECT_FALSE("Exception expected");
@@ -191,7 +191,7 @@ void test_read_6 () {
 void test_read_7 () {
 
   test3 t3;
-  std::istringstream is("{\"v\":[{\"i\":\"1\",\"j\":\"2\"},{\"i\":\"3\",\"j\":\"4\"},{\"i\":\"5\",\"j\":\"6\"}]}");
+  std::istringstream is("{\"v\":[{\"i\":1,\"j\":2},{\"i\":3,\"j\":4},{\"i\":5,\"j\":6}]}");
   io::read_json(is, t3);
 
   EXPECT_EQUAL(t3.v().size(), 3);
@@ -264,12 +264,25 @@ void test_read_11 () {
 }
 
 // --------------------------------------------------------------------------
+void test_read_12 () {
+  MpStat s;
+  std::ifstream is("test.json");
+  io::read_json(is, s);
+  EXPECT_EQUAL(s.sysstat.hosts.size(), 1);
+  EXPECT_EQUAL(s.sysstat.hosts[0].number_of_cpus, 12);
+  EXPECT_EQUAL(s.sysstat.hosts[0].statistics.size(), 1);
+  EXPECT_EQUAL(s.sysstat.hosts[0].statistics[0].cpu_load.size(), 13);
+  EXPECT_EQUAL(s.sysstat.hosts[0].statistics[0].cpu_load[0].cpu, std::string("all"));
+  EXPECT_EQUAL(s.sysstat.hosts[0].statistics[0].cpu_load[12].cpu, std::string("11"));
+}
+
+// --------------------------------------------------------------------------
 void test_write_1 () {
   int64_t i = 4711;
   std::ostringstream os;
   io::write_json(os, attribute(i, "i"), false);
 
-  EXPECT_EQUAL(os.str(), "\"i\":\"4711\"");
+  EXPECT_EQUAL(os.str(), "\"i\":4711");
 }
 
 // --------------------------------------------------------------------------
@@ -278,7 +291,7 @@ void test_write_2 () {
   std::ostringstream os;
   io::write_json(os, t1, false);
 
-  EXPECT_EQUAL(os.str(), "{\"i\":\"0\",\"j\":\"0\"}");
+  EXPECT_EQUAL(os.str(), "{\"i\":0,\"j\":0}");
 }
 
 // --------------------------------------------------------------------------
@@ -287,7 +300,7 @@ void test_write_3 () {
   std::ostringstream os;
   io::write_json(os, t2, false);
 
-  EXPECT_EQUAL(os.str(),"{\"i1\":\"0\",\"t1\":{\"i\":\"0\",\"j\":\"0\"},\"i2\":null}");
+  EXPECT_EQUAL(os.str(),"{\"i1\":0,\"t1\":{\"i\":0,\"j\":0},\"i2\":null}");
 }
 
 // --------------------------------------------------------------------------
@@ -297,7 +310,7 @@ void test_write_4 () {
   std::ostringstream os;
   io::write_json(os, t3, false);
 
-  EXPECT_EQUAL(os.str(),"{\"v\":[{\"i\":\"0\",\"j\":\"0\"}]}");
+  EXPECT_EQUAL(os.str(),"{\"v\":[{\"i\":0,\"j\":0}]}");
 }
 
 // --------------------------------------------------------------------------
@@ -324,7 +337,7 @@ void test_write_array () {
   std::array<int64_t, 5> a({1, 2, 3, 4, 5});
   std::ostringstream os;
   io::write_json(os, attribute(a, "a"), false);
-  EXPECT_EQUAL(os.str(),"\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"]");
+  EXPECT_EQUAL(os.str(),"\"a\":[1,2,3,4,5]");
 }
 // --------------------------------------------------------------------------
 void test_write_vector () {
@@ -332,7 +345,7 @@ void test_write_vector () {
   std::vector<int64_t> v({1, 2, 3, 4, 5});
   std::ostringstream os;
   io::write_json(os, attribute(v, "v"), false);
-  EXPECT_EQUAL(os.str(),"\"v\":[\"1\",\"2\",\"3\",\"4\",\"5\"]");
+  EXPECT_EQUAL(os.str(),"\"v\":[1,2,3,4,5]");
 }
 // --------------------------------------------------------------------------
 void test_write_pair () {
@@ -340,7 +353,7 @@ void test_write_pair () {
   std::ostringstream os;
   io::write_json(os, t, false);
 
-  EXPECT_EQUAL(os.str(), "{\"v\":[\"Any Text\",\"4711\"]}");
+  EXPECT_EQUAL(os.str(), "{\"v\":[\"Any Text\",4711]}");
 }
 // --------------------------------------------------------------------------
 void test_write_map () {
@@ -348,7 +361,7 @@ void test_write_map () {
   std::ostringstream os;
   io::write_json(os, m, false);
 
-  EXPECT_EQUAL(os.str(), "{\"one\":\"1\",\"three\":\"3\",\"two\":\"2\"}");
+  EXPECT_EQUAL(os.str(), "{\"one\":1,\"three\":3,\"two\":2}");
 }
 
 // --------------------------------------------------------------------------
@@ -371,6 +384,7 @@ void test_main (const testing::start_params& params) {
   run_test(test_read_9);
   run_test(test_read_10);
   run_test(test_read_11);
+  run_test(test_read_12);
 
   run_test(test_write_array);
   run_test(test_write_vector);
