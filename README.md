@@ -41,10 +41,10 @@ We expect to have a json like this:
 ```json
 
 {
-  "d": "1.234",
-  "i": "4711",
+  "d": 1.234,
+  "i": 4711,
   "s": "Some text",
-  "a": [ "1", "2", "3", "4", "5" ],
+  "a": [ 1, 2, 3, 4, 5 ],
   "v": [ "One", "Two", "Three" ]
 }
 
@@ -58,7 +58,7 @@ We expect to have a json like this:
 <body>
   <d>1.234</d>
   <i>4711</i>
-  <s>"Some text"</s>
+  <s>Some text</s>
   <a>
     <ol>
       <li>1</li>
@@ -70,9 +70,9 @@ We expect to have a json like this:
   </a>
   <v>
     <ol>
-      <li>"One"</li>
-      <li>"Two"</li>
-      <li>"Three"</li>
+      <li>One</li>
+      <li>Two</li>
+      <li>Three</li>
     </ol>
   </v>
 </body>
@@ -282,7 +282,7 @@ Write it to a xml format:
 ```c++
   MyStruct s;
 
-  std::istringstream is("{\"d\":\"1.234\",\"i\":\"4711\",\"s\":\"Some text\",\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"],\"v\":[\"One\",\"Two\",\"Three\"]}");
+  std::istringstream is("{\"d\":1.234,\"i\":4711,\"s\":\"Some text\",\"a\":[1,2,3,4,5],\"v\":[\"One\",\"Two\",\"Three\"]}");
   persistent::io::read_json(is, s);
 
 ```
