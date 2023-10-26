@@ -1,0 +1,1 @@
+nix-build --keep-failed $*

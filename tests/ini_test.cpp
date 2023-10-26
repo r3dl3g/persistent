@@ -36,7 +36,9 @@ void test_read_empty () {
 template<typename T>
 void test_read_prop_type () {
   const auto expected = get_test_data<T>();
-  const std::string str = io::msg_fmt() << "i=" << expected.first;
+  std::string test_value = expected.first;
+  test_value.erase(remove(test_value.begin(), test_value.end(), '\"'), test_value.end());
+  const std::string str = io::msg_fmt() << "i=" << test_value;
 
   T value = {};
   std::istringstream is(str);

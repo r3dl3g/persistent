@@ -31,6 +31,7 @@ if(NOT TARGET persistent)
 
   option(PERSISTENT_CONFIG_INSTALL "On to make an installable standalone build, Off to build as part of a project. Default Off" OFF)
   set(PERSISTENT_CXX_STANDARD "${CMAKE_CXX_STANDARD}" CACHE STRING "C++ standard to overwrite default cmake standard")
+  option(PERSISTENT_TESTS "On to build the tests. Default Off" OFF)
 
   set (PERSISTENT_LIBRARIES persistent::persistent)
 
@@ -139,5 +140,10 @@ endif()
     )
 
   endif()
+
+  if(PERSISTENT_TESTS)
+    add_subdirectory(tests)
+  endif()
+
 
 endif()

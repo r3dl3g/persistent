@@ -548,10 +548,14 @@ namespace persistent {
       static bool from (Source& in, std::map<K, V, C, A>& m) {
         std::string name;
         bool found = false;
-        while (parser<Source>::read_next_struct_element(in, name)) {
-          found |= read_any<Source, V>(in, m[convert<K>::string_to_key(name)]);
-          parser<Source>::read_struct_element_finish(in, name);
-          name.clear();
+        try {
+          while (parser<Source>::read_next_struct_element(in, name)) {
+            found |= read_any<Source, V>(in, m[convert<K>::string_to_key(name)]);
+            parser<Source>::read_struct_element_finish(in, name);
+            name.clear();
+          }
+        } catch (std::exception& ex) {
+          throw std::runtime_error(msg_fmt() << ex.what() << " in map '" << typeid(m).name() << "'");
         }
         return found;
       }
@@ -591,10 +595,14 @@ namespace persistent {
       static bool from (Source& in, std::tuple<Types...>& t) {
         std::string name;
         bool found = false;
-        while (parser<Source>::read_next_struct_element(in, name)) {
-          found |= read_attributes_t<sizeof...(Types), Source, Types...>::property(in, name, t);
-          parser<Source>::read_struct_element_finish(in, name);
-          name.clear();
+        try {
+          while (parser<Source>::read_next_struct_element(in, name)) {
+            found |= read_attributes_t<sizeof...(Types), Source, Types...>::property(in, name, t);
+            parser<Source>::read_struct_element_finish(in, name);
+            name.clear();
+          }
+        } catch (std::exception& ex) {
+          throw std::runtime_error(msg_fmt() << ex.what() << " in struct '" << typeid(t).name() << "'");
         }
         return found;
       }
@@ -616,7 +624,8 @@ namespace persistent {
           parser<Source>::read_property_finish(in, name);
           return found;
         } catch (std::exception& ex) {
-          throw std::runtime_error(msg_fmt() << ex.what() << " for property '" << name << "'");
+          throw std::runtime_error(msg_fmt() << ex.what() << " for property '" <<
+                                   name << "' of type '" << typeid(t).name() << "'");
         }
       }
     };
@@ -641,7 +650,8 @@ namespace persistent {
           parser<Source>::read_property_finish(in, name);
           return found;
         } catch (std::exception& ex) {
-          throw std::runtime_error(msg_fmt() << ex.what() << " for property '" << name << "'");
+          throw std::runtime_error(msg_fmt() << ex.what() << " for property '" <<
+                                   name << "' of type '" << typeid(t).name() << "'");
         }
       }
     };

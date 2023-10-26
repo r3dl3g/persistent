@@ -12,11 +12,20 @@ stdenv.mkDerivation {
 
   enableParallelBuilding = true;
 
-  # outputs = [ "out" ];
+  # outputs = [ "dev" ];
 
   cmakeFlags = [
     "-DPERSISTENT_CONFIG_INSTALL=ON"
+    "-DPERSISTENT_TESTS=ON"
   ];
+
+  doCheck = true;
+
+  checkPhase = ''
+    cd tests
+    ctest .
+    cd ..
+  '';
 
   meta = with lib; {
     description = "A c++ struct persistene library";

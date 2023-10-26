@@ -50,7 +50,7 @@ void test_write () {
   std::ostringstream os;
   persistent::io::write_json(os, s, false);
 
-  EXPECT_EQUAL(os.str(), "{\"d\":\"1.234\",\"i\":\"4711\",\"s\":\"Some text\",\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"],\"v\":[\"One\",\"Two\",\"Three\"]}");
+  EXPECT_EQUAL(os.str(), "{\"d\":1.234,\"i\":4711,\"s\":\"Some text\",\"a\":[1,2,3,4,5],\"v\":[\"One\",\"Two\",\"Three\"]}");
 
   os.str({});
   persistent::io::write_json(os, s, true);
@@ -66,7 +66,7 @@ void test_read () {
 
   MyStruct s;
 
-  std::istringstream is("{\"d\":\"1.234\",\"i\":\"4711\",\"s\":\"Some text\",\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"],\"v\":[\"One\",\"Two\",\"Three\"]}");
+  std::istringstream is("{\"d\":1.234,\"i\":4711,\"s\":\"Some text\",\"a\":[1,2,3,4,5],\"v\":[\"One\",\"Two\",\"Three\"]}");
   persistent::io::read_json(is, s);
 
   EXPECT_EQUAL(s.d, 1.234);
@@ -112,9 +112,9 @@ void test_write2 () {
   std::ostringstream os;
   persistent::io::write_json(os, s, false);
 
-  EXPECT_EQUAL(os.str(), "{\"s\":{\"d\":\"1.234\",\"i\":\"4711\",\"s\":\"Some text\",\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"],\"v\":[\"One\",\"Two\",\"Three\"]}"
-                         ",\"v1\":[\"3\",\"4\",\"5\"]"
-                         ",\"v2\":[{\"d\":\"1.1\",\"i\":\"2\",\"s\":\"A\",\"a\":[\"1\",\"2\",\"3\",\"0\",\"0\"]"
+  EXPECT_EQUAL(os.str(), "{\"s\":{\"d\":1.234,\"i\":4711,\"s\":\"Some text\",\"a\":[1,2,3,4,5],\"v\":[\"One\",\"Two\",\"Three\"]}"
+                         ",\"v1\":[3,4,5]"
+                         ",\"v2\":[{\"d\":1.1,\"i\":2,\"s\":\"A\",\"a\":[1,2,3,0,0]"
                          ",\"v\":[\"A\",\"B\",\"C\"]}]"
                          ",\"p\":null}");
 }
@@ -124,11 +124,11 @@ void test_read2 () {
 
   MyStruct2 s;
 
-  std::istringstream is("{\"s\":{\"d\":\"1.234\",\"i\":\"4711\",\"s\":\"Some text\",\"a\":[\"1\",\"2\",\"3\",\"4\",\"5\"],\"v\":[\"One\",\"Two\",\"Three\"]}"
-                        ",\"v1\":[\"3\",\"4\",\"5\"]"
-                        ",\"v2\":[{\"d\":\"1.1\",\"i\":\"2\",\"s\":\"A\",\"a\":[\"1\",\"2\",\"3\",\"0\",\"0\"]"
+  std::istringstream is("{\"s\":{\"d\":1.234,\"i\":4711,\"s\":\"Some text\",\"a\":[1,2,3,4,5],\"v\":[\"One\",\"Two\",\"Three\"]}"
+                        ",\"v1\":[3,4,5]"
+                        ",\"v2\":[{\"d\":1.1,\"i\":2,\"s\":\"A\",\"a\":[1,2,3,0,0]"
                         ",\"v\":[\"A\",\"B\",\"C\"]}]"
-                        ",\"p\":{\"d\":\"0\",\"i\":\"0\",\"s\":\"\",\"a\":[],\"v\":[]}}");
+                        ",\"p\":{\"d\":0,\"i\":0,\"s\":\"\",\"a\":[],\"v\":[]}}");
   persistent::io::read_json(is, s);
 
   EXPECT_EQUAL(s.s.d, 1.234);
@@ -211,7 +211,7 @@ void test_write3 () {
   std::ostringstream os;
   persistent::io::write_json(os, s, false);
 
-  EXPECT_EQUAL(os.str(), "{\"str\":\"Some text\",\"i\":\"4711\"}");
+  EXPECT_EQUAL(os.str(), "{\"str\":\"Some text\",\"i\":4711}");
 }
 
 // --------------------------------------------------------------------------
@@ -219,7 +219,7 @@ void test_read3 () {
 
   MyStruct3 s;
 
-  std::istringstream is("{\"str\":\"Some text\",\"i\":\"4711\"}");
+  std::istringstream is("{\"str\":\"Some text\",\"i\":4711}");
   persistent::io::read_json(is, s);
 
   EXPECT_EQUAL(s.str, "Some text");
@@ -281,7 +281,7 @@ void test_write4 () {
   std::ostringstream os;
   persistent::io::write_json(os, s, false);
 
-  EXPECT_EQUAL(os.str(), "{\"str\":\"Some text\",\"i\":\"4711\"}");
+  EXPECT_EQUAL(os.str(), "{\"str\":\"Some text\",\"i\":4711}");
 }
 
 //// --------------------------------------------------------------------------
@@ -289,7 +289,7 @@ void test_read4 () {
 
   MyStruct4 s;
 
-  std::istringstream is("{\"str\":\"Some text\",\"i\":\"4711\"}");
+  std::istringstream is("{\"str\":\"Some text\",\"i\":4711}");
   persistent::io::read_json(is, s);
 
   EXPECT_EQUAL(s.get_string(), "Some text");
