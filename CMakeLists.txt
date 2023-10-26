@@ -29,12 +29,12 @@ if(NOT TARGET persistent)
   set (PERSISTENT_VERSION_PATCH ${PROJECT_VERSION_PATCH})
   set (PERSISTENT_VERSION "${PROJECT_VERSION}")
 
-option(PERSISTENT_CONFIG_INSTALL "On to make an installable standalone build, Off to build as part of a project. Default Off" OFF)
-option(PERSISTENT_CXX_STANDARD "C++ standard to overwrite default cmake standard" ${CMAKE_CXX_STANDARD})
+  option(PERSISTENT_CONFIG_INSTALL "On to make an installable standalone build, Off to build as part of a project. Default Off" OFF)
+  set(PERSISTENT_CXX_STANDARD "${CMAKE_CXX_STANDARD}" CACHE STRING "C++ standard to overwrite default cmake standard")
 
   set (PERSISTENT_LIBRARIES persistent::persistent)
 
-  if (PERSISTENT_CXX_STANDARD STREQUAL "OFF")
+  if (PERSISTENT_CXX_STANDARD STREQUAL "")
     set (PERSISTENT_CXX_STANDARD 17)
   endif ()
 
