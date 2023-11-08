@@ -287,9 +287,9 @@ namespace persistent {
       }
     };
 
-    template<typename T, typename A>
-    struct read_vector_t<ini_parser_context, T, A> {
-      static bool from (ini_parser_context& in, std::vector<T, A>& v) {
+    template<typename T, typename V>
+    struct read_vector_t<ini_parser_context, T, V> {
+      static bool from (ini_parser_context& in, V& v) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
           if (std::all_of(index.begin(), index.end(), ::isdigit)) {
@@ -307,9 +307,9 @@ namespace persistent {
       }
     };
 
-    template<typename T, std::size_t S>
-    struct read_array_t<ini_parser_context, T, S> {
-      static bool from (ini_parser_context& in, std::array<T, S>& a) {
+    template<typename T, typename A>
+    struct read_array_t<ini_parser_context, T, A> {
+      static bool from (ini_parser_context& in, A& a) {
         if (in.path.is_parent_of(in.key)) {
           const std::string& index = in.key.element(in.path.size());
           if (std::all_of(index.begin(), index.end(), ::isdigit)) {

@@ -142,6 +142,7 @@ endif()
   endif()
 
   if(PERSISTENT_TESTS)
+    message("add_subdirectory(tests)")
     add_subdirectory(tests)
   endif()
 

@@ -101,8 +101,8 @@ namespace persistent {
 
     /// read vector
     template<typename T>
-    struct read_vector_t<ptree, T, typename A> {
-      static bool from (ptree& p, std::vector<T, A>& v) {
+    struct read_vector_t<ptree, T, typename V> {
+      static bool from (ptree& p, V& v) {
         int i = 0;
         v.resize(p.size());
         for (auto& item : p) {
@@ -113,9 +113,9 @@ namespace persistent {
     };
 
     /// read array
-    template<typename T, size_t S>
-    struct read_array_t<ptree, T, S> {
-      static bool from (ptree& p, std::array<T, S>& a) {
+    template<typename T, typename A>
+    struct read_array_t<ptree, T, A> {
+      static bool from (ptree& p, A& a) {
         int i = 0;
         for (auto& item : p) {
           read_any(item.second, a[i++]);

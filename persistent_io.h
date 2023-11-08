@@ -141,16 +141,16 @@ namespace persistent {
     };
 
     /// write vector values
-    template<typename Target, typename T, typename A>
+    template<typename Target, typename T, typename V>
     struct write_vector_t {
-      static void to (Target& out, const std::vector<T, A>& t) {
-        writeList_t<Target, T, std::vector<T, A>>::to(out, t);
+      static void to (Target& out, const V& t) {
+        writeList_t<Target, T, V>::to(out, t);
       }
     };
 
     template<typename Target, typename T, typename A>
     void write_vector (Target& out, const std::vector<T, A>& t) {
-      write_vector_t<Target, T, A>::to(out, t);
+      write_vector_t<Target, T, std::vector<T, A>>::to(out, t);
     }
 
     /// write array values
@@ -494,9 +494,9 @@ namespace persistent {
     }
 
     /// read vector
-    template<typename Source, typename T, typename A>
+    template<typename Source, typename T, typename V>
     struct read_vector_t {
-      static bool from (Source& in, std::vector<T, A>& v) {
+      static bool from (Source& in, V& v) {
         if (!parser<Source>::read_list_start(in)) {
           return false;
         }
@@ -515,13 +515,13 @@ namespace persistent {
 
     template<typename Source, typename T, typename A>
     inline bool read_vector (Source& in, std::vector<T, A>& t) {
-      return read_vector_t<Source, T, A>::from(in, t);
+      return read_vector_t<Source, T, std::vector<T, A>>::from(in, t);
     }
 
     /// read array
-    template<typename Source, typename T, std::size_t S>
+    template<typename Source, typename T, typename A>
     struct read_array_t {
-      static bool from (Source& in, std::array<T, S>& a) {
+      static bool from (Source& in, A& a) {
         if (!parser<Source>::read_list_start(in)) {
           return false;
         }
@@ -539,7 +539,7 @@ namespace persistent {
 
     template<typename Source, typename T, std::size_t S>
     inline bool read_array (Source& in, std::array<T, S>& t) {
-      return read_array_t<Source, T, S>::from(in, t);
+      return read_array_t<Source, T, std::array<T, S>>::from(in, t);
     }
 
     /// read map
