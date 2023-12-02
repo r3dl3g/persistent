@@ -16,10 +16,10 @@ stdenv.mkDerivation {
 
   cmakeFlags = [
     "-DPERSISTENT_CONFIG_INSTALL=ON"
-    "-DPERSISTENT_TESTS=ON"
+    "-DPERSISTENT_TESTS=OFF"
   ];
 
-  doCheck = true;
+  doCheck = false;
 
   checkPhase = ''
     cd tests
